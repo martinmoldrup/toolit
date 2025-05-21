@@ -1,0 +1,25 @@
+[project]
+name = "toolit"
+version = "0.1.0"
+description = "MCP Server and Typer CLI in one, provides an easy way to configure your own DevTools in a project."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mcp[cli]>=1.6.0",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "typer>=0.15.2",
+]
+
+[project.scripts]
+toolit = "src.cli:app"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]

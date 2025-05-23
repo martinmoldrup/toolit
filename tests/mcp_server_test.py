@@ -1,5 +1,5 @@
 import pytest
-import src.create_apps_and_register as create_apps_and_register
+import toolit.create_apps_and_register as create_apps_and_register
 
 
 @pytest.mark.asyncio

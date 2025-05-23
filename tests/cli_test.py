@@ -1,4 +1,4 @@
-import src.create_apps_and_register as create_apps_and_register
+import toolit.create_apps_and_register as create_apps_and_register
 from typer.testing import CliRunner
 
 def a_new_command_registered() -> None:

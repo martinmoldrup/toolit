@@ -1,25 +1,53 @@
-[project]
-name = "toolit"
-version = "0.1.0"
-description = "MCP Server and Typer CLI in one, provides an easy way to configure your own DevTools in a project."
+[project]  
+name = "toolit"  
+version = "0.0.1"  
+description = "MCP Server and Typer CLI in one, provides an easy way to configure your own DevTools in a project."  
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"  
 dependencies = []
-
-[dependency-groups]
-dev = [
-    "mcp[cli]>=1.6.0",
-    "pytest>=8.3.5",
-    "pytest-asyncio>=0.26.0",
-    "typer>=0.15.2",
+classifiers = [  
+    "Framework :: Pytest",  
+    "Development Status :: 4 - Beta",  
+    "Intended Audience :: Developers",  
+    "Topic :: Software Development :: Testing",  
+    "Operating System :: OS Independent",  
+    "Programming Language :: Python",  
+    "Programming Language :: Python :: 3.9",  
+    "Programming Language :: Python :: 3.10",  
+    "Programming Language :: Python :: 3.11",  
+    "Programming Language :: Python :: 3.12",  
+    "Programming Language :: Python :: 3.13",  
+    "Programming Language :: Python :: 3 :: Only",  
+    "Programming Language :: Python :: Implementation :: CPython",  
+    "Programming Language :: Python :: Implementation :: PyPy",  
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",  
+]  
+keywords = ["mcp", "cli", "devtools", "typer"]  
+authors = [
+  {name = "Martin Møldrup"},
 ]
 
+[project.urls]
+Homepage = "https://github.com/martinmoldrup/toolit"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/martinmoldrup/toolit"
+Issues = "https://github.com/martinmoldrup/toolit/issues"
+Changelog = "https://github.com/martinmoldrup/toolit/blob/master/CHANGELOG.md"
+
+[dependency-groups]  
+dev = [  
+    "mcp[cli]>=1.6.0",  
+    "pytest>=8.3.5",  
+    "pytest-asyncio>=0.26.0",  
+    "typer>=0.15.2",  
+]  
+  
 [project.scripts]
-toolit = "src.cli:app"
-
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["src"]
+toolit = "toolit.cli:app"
+  
+[build-system]  
+requires = ["setuptools>=61.0"]  
+build-backend = "setuptools.build_meta"  
+  
+[tool.setuptools]  
+packages = ["toolit"]  

@@ -14,7 +14,7 @@ import os
 import importlib
 import inspect
 import sys
-from types import FunctionType
+from types import FunctionType, ModuleType
 from typing import List
 from .create_apps_and_register import register_command
 import pathlib
@@ -34,13 +34,24 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> List[FunctionType]:
     for file in folder_path.iterdir():
         if not (file.is_file() and file.suffix == ".py" and not file.name.startswith("__")):
             continue
-        tools_for_file: List[FunctionType] = load_tool_from_file(file)
+        module = import_module(file)
+        tools_for_file: List[FunctionType] = load_tools_from_file(module, MARKER_TOOL)
         tools.extend(tools_for_file)
+    # Register each tool as a command
+    for tool in tools:
+        register_command(tool)
     return tools
 
-def load_tool_from_file(file: pathlib.Path) -> List[FunctionType]:
+def load_tools_from_file(module: ModuleType, marker: str) -> List[FunctionType]:
     """Load a tool from a given file and register it as a command."""
     tools = []
+    for name, obj in inspect.getmembers(module):
+        is_tool: bool = isinstance(obj, FunctionType) and getattr(obj, marker, False)
+        if inspect.isfunction(obj) and is_tool:
+            tools.append(obj)
+    return tools
+
+def import_module(file: pathlib.Path) -> ModuleType:
     module_name: str = file.stem
     try:
         # Compute module import name relative to the project's working directory. 
@@ -51,10 +62,4 @@ def load_tool_from_file(file: pathlib.Path) -> List[FunctionType]:
             # Fallback to the module name if relative path cannot be determined.
         module_import_name = module_name
     module = importlib.import_module(module_import_name)
-    for name, obj in inspect.getmembers(module):
-        is_tool: bool = isinstance(obj, FunctionType) and getattr(obj, MARKER_TOOL, False)
-        if inspect.isfunction(obj) and is_tool:
-            tools.append(obj)
-                # Register the tool with the CLI and MCP commands.
-            register_command(obj, name=name)
-    return tools
+    return module

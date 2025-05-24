@@ -1,11 +1,13 @@
 """Create a vscode tasks.json file based on the tools discovered in the project."""
-from toolit.auto_loader import load_tools_from_folder
+from toolit.auto_loader import load_tools_from_folder, get_toolit_type
+from toolit.constants import ToolitTypesEnum
 import pathlib
 from types import FunctionType
 from typing import Any, Dict, List
 import inspect
 import json
 import enum
+
 
 PATH: pathlib.Path = pathlib.Path() / "devtools"
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
@@ -33,6 +35,14 @@ def create_tasks_json(tools: List[FunctionType]) -> None:
     with open(output_file_path, 'w', encoding='utf-8') as f:
         json.dump(tasks_json, f, indent=4)
     print(f"Tasks JSON created at {output_file_path}")
+
+def create_typer_command_name(tool: FunctionType) -> str:
+    """Create a Typer command name from a tool function name."""
+    return tool.__name__.replace("_", "-").lower()
+
+def create_display_name(tool: FunctionType) -> str:
+    """Create a display name from a tool function name."""
+    return tool.__name__.replace("_", " ").title()
 
 class TaskJsonBuilder:
     """Class to build tasks.json inputs and argument mappings."""
@@ -80,7 +90,7 @@ class TaskJsonBuilder:
 
     def create_task_entry(self, tool: FunctionType, args: List[str]) -> None:
         """Create a task entry for a given tool."""
-        name_as_typer_command: str = tool.__name__.replace("_", "-")
+        name_as_typer_command: str = create_typer_command_name(tool)
         display_name: str = tool.__name__.replace("_", " ").title()
         task: Dict[str, Any] = {
             "label": display_name,
@@ -92,10 +102,30 @@ class TaskJsonBuilder:
             task["detail"] = tool.__doc__.strip()
         self.tasks.append(task)
 
+    def create_task_group_entry(self, tool: FunctionType, args: List[str], tool_type: ToolitTypesEnum) -> None:
+        """Create a task group entry for a given tool."""
+        group_name: str = tool.__name__.replace("_", " ").title()
+        tools: list[FunctionType] = tool()  # Call the tool to get the list of tools in the group
+        task: Dict[str, Any] = {
+            "label": group_name,
+            "dependsOn": [f"{create_display_name(t)}" for t in tools],
+            "problemMatcher": [],
+        }
+        if tool_type == ToolitTypesEnum.SEQUENCIAL_GROUP:
+            task["dependsOrder"] = "sequence"
+        if tool.__doc__:
+            task["detail"] = tool.__doc__.strip()
+        self.tasks.append(task)
+
     def process_tool(self, tool: FunctionType) -> None:
         """Process a single tool to create its task entry and inputs."""
-        args = self.create_args_for_tool(tool)
-        self.create_task_entry(tool, args)
+        tool_type = get_toolit_type(tool)
+        if tool_type == ToolitTypesEnum.TOOL:
+            args = self.create_args_for_tool(tool)
+            self.create_task_entry(tool, args)
+        elif tool_type in (ToolitTypesEnum.SEQUENCIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP):
+            args = self.create_args_for_tool(tool)
+            self.create_task_group_entry(tool, args, tool_type)
 
     def create_tasks_json(self) -> dict:
         """Create the final tasks.json structure."""

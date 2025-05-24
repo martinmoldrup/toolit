@@ -18,7 +18,7 @@ from types import FunctionType, ModuleType
 from typing import List
 from .create_apps_and_register import register_command
 import pathlib
-from .constants import MARKER_TOOL
+from .constants import MARKER_TOOL, ToolitTypesEnum
 
 def load_tools_from_folder(folder_path: pathlib.Path) -> List[FunctionType]:
     """Load all tools from a given folder (relative to the project's working directory) and register them as commands."""
@@ -27,6 +27,7 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> List[FunctionType]:
         folder_path = pathlib.Path.cwd() / folder_path
 
     tools: List[FunctionType] = []
+    tool_groups: List[FunctionType] = []
     project_root: str = str(pathlib.Path.cwd())
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
@@ -35,18 +36,26 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> List[FunctionType]:
         if not (file.is_file() and file.suffix == ".py" and not file.name.startswith("__")):
             continue
         module = import_module(file)
-        tools_for_file: List[FunctionType] = load_tools_from_file(module, MARKER_TOOL)
+        tools_for_file: List[FunctionType] = load_tools_from_file(module, ToolitTypesEnum.TOOL)
         tools.extend(tools_for_file)
+        tool_groups.extend(load_tools_from_file(module, ToolitTypesEnum.SEQUENCIAL_GROUP))
+        tool_groups.extend(load_tools_from_file(module, ToolitTypesEnum.PARALLEL_GROUP))
     # Register each tool as a command
     for tool in tools:
         register_command(tool)
-    return tools
+    return tools + tool_groups
 
-def load_tools_from_file(module: ModuleType, marker: str) -> List[FunctionType]:
+def get_toolit_type(tool: FunctionType) -> ToolitTypesEnum | None:
+    """Get the type of a tool based on its marker."""
+    if hasattr(tool, MARKER_TOOL):
+        return getattr(tool, MARKER_TOOL)
+    return None
+
+def load_tools_from_file(module: ModuleType, tool_type: ToolitTypesEnum) -> List[FunctionType]:
     """Load a tool from a given file and register it as a command."""
     tools = []
     for name, obj in inspect.getmembers(module):
-        is_tool: bool = isinstance(obj, FunctionType) and getattr(obj, marker, False)
+        is_tool: bool = get_toolit_type(obj) == tool_type
         if inspect.isfunction(obj) and is_tool:
             tools.append(obj)
     return tools

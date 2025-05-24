@@ -23,20 +23,33 @@ def _is_bool(annotation: Any) -> bool:
 
 def create_tasks_json(tools: List[FunctionType]) -> None:
     """Create a tasks.json file based on the tools discovered in the project."""
-    tasks: List[Dict[str, Any]] = []
-    inputs: List[Dict[str, Any]] = []
-    input_id_map: Dict[str, str] = {}
-
+    
+    json_builder = TaskJsonBuilder()
     for tool in tools:
-        name_as_typer_command: str = tool.__name__.replace("_", "-")
-        display_name: str = tool.__name__.replace("_", " ").title()
+        json_builder.process_tool(tool)
+    tasks_json: Dict[str, Any] = json_builder.create_tasks_json()
+
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_file_path, 'w', encoding='utf-8') as f:
+        json.dump(tasks_json, f, indent=4)
+    print(f"Tasks JSON created at {output_file_path}")
+
+class TaskJsonBuilder:
+    """Class to build tasks.json inputs and argument mappings."""
+    def __init__(self) -> None:
+        self.inputs: List[Dict[str, Any]] = []
+        self.input_id_map: Dict[str, str] = {}
+        self.tasks: List[Dict[str, Any]] = []
+
+    def create_args_for_tool(self, tool: FunctionType) -> List[str]:
+        """Create argument list and input entries for a given tool."""
         sig = inspect.signature(tool)
         args: List[str] = []
         for param in sig.parameters.values():
             if param.name == "self":
                 continue
             input_id: str = f"{tool.__name__}_{param.name}"
-            input_id_map[(tool.__name__, param.name)] = input_id
+            self.input_id_map[(tool.__name__, param.name)] = input_id
 
             annotation = param.annotation
             input_type: str = "promptString"
@@ -61,9 +74,14 @@ def create_tasks_json(tools: List[FunctionType]) -> None:
                 "default": default_value,
             }
             input_entry.update(input_options)
-            inputs.append(input_entry)
+            self.inputs.append(input_entry)
             args.append(f"\"${{input:{input_id}}}\"")
+        return args
 
+    def create_task_entry(self, tool: FunctionType, args: List[str]) -> None:
+        """Create a task entry for a given tool."""
+        name_as_typer_command: str = tool.__name__.replace("_", "-")
+        display_name: str = tool.__name__.replace("_", " ").title()
         task: Dict[str, Any] = {
             "label": display_name,
             "type": "shell",
@@ -72,19 +90,22 @@ def create_tasks_json(tools: List[FunctionType]) -> None:
         }
         if tool.__doc__:
             task["detail"] = tool.__doc__.strip()
-        tasks.append(task)
+        self.tasks.append(task)
 
-    tasks_json: Dict[str, Any] = {
-        "version": "2.0.0",
-        "tasks": tasks,
-        "inputs": inputs,
-    }
+    def process_tool(self, tool: FunctionType) -> None:
+        """Process a single tool to create its task entry and inputs."""
+        args = self.create_args_for_tool(tool)
+        self.create_task_entry(tool, args)
 
-    output_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_file_path, 'w', encoding='utf-8') as f:
-        json.dump(tasks_json, f, indent=4)
-    print(f"Tasks JSON created at {output_file_path}")
+    def create_tasks_json(self) -> dict:
+        """Create the final tasks.json structure."""
 
+        tasks_json: Dict[str, Any] = {
+            "version": "2.0.0",
+            "tasks": self.tasks,
+            "inputs": self.inputs,
+        }
+        return tasks_json
 
 if __name__ == "__main__":
     tools: List[FunctionType] = load_tools_from_folder(PATH)

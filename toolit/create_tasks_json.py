@@ -23,7 +23,7 @@ def _is_bool(annotation: Any) -> bool:
     return annotation is bool
 
 
-def create_tasks_json(tools: List[FunctionType]) -> None:
+def create_vscode_tasks_json(tools: List[FunctionType]) -> None:
     """Create a tasks.json file based on the tools discovered in the project."""
     
     json_builder = TaskJsonBuilder()
@@ -140,4 +140,4 @@ class TaskJsonBuilder:
 if __name__ == "__main__":
     tools: List[FunctionType] = load_tools_from_folder(PATH)
     print(f"Found {len(tools)} tools in {PATH}.")
-    create_tasks_json(tools)
+    create_vscode_tasks_json(tools)

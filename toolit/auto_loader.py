@@ -1,14 +1,6 @@
 """
 A folder is defined. 
 Everything that has the @decorators.tool decorator will be loaded and added as CLI and MCP commands.
-The folder is defined in the config file.
-
-Example of a tool:
-@decorators.tool
-def my_tool():
-    pass
-
-
 """
 import os
 import importlib
@@ -16,9 +8,9 @@ import inspect
 import sys
 from types import FunctionType, ModuleType
 from typing import List
-from .create_apps_and_register import register_command
+from toolit.create_apps_and_register import register_command
 import pathlib
-from .constants import MARKER_TOOL, ToolitTypesEnum
+from toolit.constants import MARKER_TOOL, ToolitTypesEnum
 
 def load_tools_from_folder(folder_path: pathlib.Path) -> List[FunctionType]:
     """Load all tools from a given folder (relative to the project's working directory) and register them as commands."""

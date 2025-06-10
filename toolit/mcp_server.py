@@ -7,4 +7,6 @@ load_tools_from_folder(PATH)
 
 if __name__ == "__main__":
     # Run the typer app
+    if mcp is None:
+        raise ImportError("FastMCP is not available. Please install it to use the MCP server. Use `pip install mcp[cli]` to install it.")
     mcp.run()

@@ -1,13 +1,15 @@
 """CLI and optional MCP server for Toolit project."""
+
 from __future__ import annotations
 
+import typer
 from collections.abc import Callable
 from typing import Any
-import typer
 
 # Try to import FastMCP, make MCP optional
 try:
     from mcp.server.fastmcp import FastMCP
+
     _has_mcp: bool = True
 except ImportError:
     FastMCP: Any = None  # type: ignore

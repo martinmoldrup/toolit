@@ -1,16 +1,18 @@
 """
-A folder is defined. 
+A folder is defined.
 Everything that has the @decorators.tool decorator will be loaded and added as CLI and MCP commands.
 """
+
 import os
-import importlib
-import inspect
 import sys
+import inspect
+import pathlib
+import importlib
+from toolit.constants import MARKER_TOOL, ToolitTypesEnum
+from toolit.create_apps_and_register import register_command
 from types import FunctionType, ModuleType
 from typing import List
-from toolit.create_apps_and_register import register_command
-import pathlib
-from toolit.constants import MARKER_TOOL, ToolitTypesEnum
+
 
 def load_tools_from_folder(folder_path: pathlib.Path) -> List[FunctionType]:
     """Load all tools from a given folder (relative to the project's working directory) and register them as commands."""
@@ -37,11 +39,13 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> List[FunctionType]:
         register_command(tool)
     return tools + tool_groups
 
+
 def get_toolit_type(tool: FunctionType) -> ToolitTypesEnum | None:
     """Get the type of a tool based on its marker."""
     if hasattr(tool, MARKER_TOOL):
         return getattr(tool, MARKER_TOOL)
     return None
+
 
 def load_tools_from_file(module: ModuleType, tool_type: ToolitTypesEnum) -> List[FunctionType]:
     """Load a tool from a given file and register it as a command."""
@@ -52,15 +56,16 @@ def load_tools_from_file(module: ModuleType, tool_type: ToolitTypesEnum) -> List
             tools.append(obj)
     return tools
 
+
 def import_module(file: pathlib.Path) -> ModuleType:
     module_name: str = file.stem
     try:
-        # Compute module import name relative to the project's working directory. 
+        # Compute module import name relative to the project's working directory.
         # For example, if file is "experimentation/tools/tool.py", it becomes "experimentation.tools.tool".
         rel_module: pathlib.Path = file.relative_to(pathlib.Path.cwd())
         module_import_name: str = str(rel_module.with_suffix("")).replace(os.sep, ".")
     except ValueError:
-            # Fallback to the module name if relative path cannot be determined.
+        # Fallback to the module name if relative path cannot be determined.
         module_import_name = module_name
     module = importlib.import_module(module_import_name)
     return module

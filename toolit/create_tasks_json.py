@@ -3,7 +3,7 @@ from toolit.auto_loader import load_tools_from_folder, get_toolit_type
 from toolit.constants import ToolitTypesEnum
 import pathlib
 from types import FunctionType
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 import inspect
 import json
 import enum
@@ -17,7 +17,6 @@ def _is_enum(annotation: Any) -> bool:
     """Check if the annotation is an Enum type."""
     return isinstance(annotation, type) and issubclass(annotation, enum.Enum)
 
-
 def _is_bool(annotation: Any) -> bool:
     """Check if the annotation is a bool type."""
     return annotation is bool
@@ -25,7 +24,7 @@ def _is_bool(annotation: Any) -> bool:
 
 def create_vscode_tasks_json(tools: List[FunctionType]) -> None:
     """Create a tasks.json file based on the tools discovered in the project."""
-    
+
     json_builder = TaskJsonBuilder()
     for tool in tools:
         json_builder.process_tool(tool)
@@ -48,7 +47,7 @@ class TaskJsonBuilder:
     """Class to build tasks.json inputs and argument mappings."""
     def __init__(self) -> None:
         self.inputs: List[Dict[str, Any]] = []
-        self.input_id_map: Dict[str, str] = {}
+        self.input_id_map: Dict[Tuple[str, str], str] = {}
         self.tasks: List[Dict[str, Any]] = []
 
     def create_args_for_tool(self, tool: FunctionType) -> List[str]:

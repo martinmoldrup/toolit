@@ -7,33 +7,32 @@ import pathlib
 from toolit.auto_loader import get_toolit_type, load_tools_from_folder
 from toolit.constants import ToolitTypesEnum
 from types import FunctionType
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 PATH: pathlib.Path = pathlib.Path() / "devtools"
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
 
 
-def _is_enum(annotation: Any) -> bool:
+def _is_enum(annotation: Any) -> bool:  # noqa: ANN401
     """Check if the annotation is an Enum type."""
     return isinstance(annotation, type) and issubclass(annotation, enum.Enum)
 
 
-def _is_bool(annotation: Any) -> bool:
+def _is_bool(annotation: Any) -> bool:  # noqa: ANN401
     """Check if the annotation is a bool type."""
     return annotation is bool
 
 
-def create_vscode_tasks_json(tools: List[FunctionType]) -> None:
+def create_vscode_tasks_json(tools: list[FunctionType]) -> None:
     """Create a tasks.json file based on the tools discovered in the project."""
     json_builder = TaskJsonBuilder()
     for tool in tools:
         json_builder.process_tool(tool)
-    tasks_json: Dict[str, Any] = json_builder.create_tasks_json()
+    tasks_json: dict[str, Any] = json_builder.create_tasks_json()
 
     output_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_file_path, "w", encoding="utf-8") as f:
+    with output_file_path.open("w", encoding="utf-8") as f:
         json.dump(tasks_json, f, indent=4)
-    print(f"Tasks JSON created at {output_file_path}")
 
 
 def create_typer_command_name(tool: FunctionType) -> str:
@@ -50,14 +49,15 @@ class TaskJsonBuilder:
     """Class to build tasks.json inputs and argument mappings."""
 
     def __init__(self) -> None:
-        self.inputs: List[Dict[str, Any]] = []
-        self.input_id_map: Dict[Tuple[str, str], str] = {}
-        self.tasks: List[Dict[str, Any]] = []
+        """Initialize the object."""
+        self.inputs: list[dict[str, Any]] = []
+        self.input_id_map: dict[tuple[str, str], str] = {}
+        self.tasks: list[dict[str, Any]] = []
 
-    def create_args_for_tool(self, tool: FunctionType) -> List[str]:
+    def create_args_for_tool(self, tool: FunctionType) -> list[str]:
         """Create argument list and input entries for a given tool."""
         sig = inspect.signature(tool)
-        args: List[str] = []
+        args: list[str] = []
         for param in sig.parameters.values():
             if param.name == "self":
                 continue
@@ -66,13 +66,16 @@ class TaskJsonBuilder:
 
             annotation = param.annotation
             input_type: str = "promptString"
-            input_options: Dict[str, Any] = {}
-            description: str = f"Enter value for {param.name} ({annotation.__name__ if annotation != inspect.Parameter.empty else 'str'})"
+            input_options: dict[str, Any] = {}
+            description: str = "Enter value for {param_name} ({type})".format(
+                param_name=param.name,
+                type=annotation.__name__ if annotation != inspect.Parameter.empty else "str",
+            )
             default_value: Any = "" if param.default == inspect.Parameter.empty else param.default
 
             if _is_enum(annotation):
                 input_type = "pickString"
-                choices: List[str] = [e.value for e in annotation]  # type: ignore
+                choices: list[str] = [e.value for e in annotation]  # type: ignore[misc]
                 input_options["options"] = choices
                 default_value = choices[0] if param.default == inspect.Parameter.empty else param.default.value
             elif _is_bool(annotation):
@@ -80,7 +83,7 @@ class TaskJsonBuilder:
                 input_options["options"] = ["True", "False"]
                 default_value = "False" if param.default == inspect.Parameter.empty else str(param.default)
 
-            input_entry: Dict[str, Any] = {
+            input_entry: dict[str, Any] = {
                 "id": input_id,
                 "type": input_type,
                 "description": description,
@@ -91,11 +94,11 @@ class TaskJsonBuilder:
             args.append(f'"${{input:{input_id}}}"')
         return args
 
-    def create_task_entry(self, tool: FunctionType, args: List[str]) -> None:
+    def create_task_entry(self, tool: FunctionType, args: list[str]) -> None:
         """Create a task entry for a given tool."""
         name_as_typer_command: str = create_typer_command_name(tool)
         display_name: str = tool.__name__.replace("_", " ").title()
-        task: Dict[str, Any] = {
+        task: dict[str, Any] = {
             "label": display_name,
             "type": "shell",
             "command": f"toolit {name_as_typer_command}" + (f" {' '.join(args)}" if args else ""),
@@ -105,11 +108,11 @@ class TaskJsonBuilder:
             task["detail"] = tool.__doc__.strip()
         self.tasks.append(task)
 
-    def create_task_group_entry(self, tool: FunctionType, args: List[str], tool_type: ToolitTypesEnum) -> None:
+    def create_task_group_entry(self, tool: FunctionType, tool_type: ToolitTypesEnum) -> None:
         """Create a task group entry for a given tool."""
         group_name: str = tool.__name__.replace("_", " ").title()
         tools: list[FunctionType] = tool()  # Call the tool to get the list of tools in the group
-        task: Dict[str, Any] = {
+        task: dict[str, Any] = {
             "label": group_name,
             "dependsOn": [f"{create_display_name(t)}" for t in tools],
             "problemMatcher": [],
@@ -126,13 +129,12 @@ class TaskJsonBuilder:
         if tool_type == ToolitTypesEnum.TOOL:
             args = self.create_args_for_tool(tool)
             self.create_task_entry(tool, args)
-        elif tool_type in (ToolitTypesEnum.SEQUENCIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP):
-            args = self.create_args_for_tool(tool)
-            self.create_task_group_entry(tool, args, tool_type)
+        elif tool_type in {ToolitTypesEnum.SEQUENCIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP}:
+            self.create_task_group_entry(tool, tool_type)
 
     def create_tasks_json(self) -> dict:
         """Create the final tasks.json structure."""
-        tasks_json: Dict[str, Any] = {
+        tasks_json: dict[str, Any] = {
             "version": "2.0.0",
             "tasks": self.tasks,
             "inputs": self.inputs,
@@ -141,6 +143,5 @@ class TaskJsonBuilder:
 
 
 if __name__ == "__main__":
-    tools: List[FunctionType] = load_tools_from_folder(PATH)
-    print(f"Found {len(tools)} tools in {PATH}.")
+    tools: list[FunctionType] = load_tools_from_folder(PATH)
     create_vscode_tasks_json(tools)

@@ -47,6 +47,7 @@ from typing import Callable
 @tool
 def first_command() -> None:
     print("First command executed.")
+
 @tool
 def second_command() -> None:
     print("Second command executed.")

@@ -12,7 +12,7 @@ try:
 
     _has_mcp: bool = True
 except ImportError:
-    FastMCP: Any = None  # type: ignore
+    FastMCP: Any = None  # type: ignore[no-redef]
     _has_mcp = False
 
 # Initialize the Typer app
@@ -24,7 +24,8 @@ mcp: FastMCP | None = FastMCP("Toolit MCP Server") if _has_mcp else None
 def register_command(command_func: Callable[..., Any], name: str | None = None) -> None:
     """Register an external command to the CLI and MCP server if available."""
     if not callable(command_func):
-        raise ValueError(f"Command function {command_func} is not callable.")
+        msg = f"Command function {command_func} is not callable."
+        raise TypeError(msg)
     if name:
         app.command(name=name)(command_func)
         if mcp is not None:

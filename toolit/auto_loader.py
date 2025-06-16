@@ -38,7 +38,7 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> list[FunctionType]:
         module = import_module(file)
         tools_for_file: list[FunctionType] = load_tools_from_file(module, ToolitTypesEnum.TOOL)
         tools.extend(tools_for_file)
-        tool_groups.extend(load_tools_from_file(module, ToolitTypesEnum.SEQUENCIAL_GROUP))
+        tool_groups.extend(load_tools_from_file(module, ToolitTypesEnum.SEQUENTIAL_GROUP))
         tool_groups.extend(load_tools_from_file(module, ToolitTypesEnum.PARALLEL_GROUP))
     # Register each tool as a command
     for tool in tools:

@@ -7,7 +7,7 @@ def a_new_command_registered() -> None:
     print("This is a new command registered.")
 
 
-def test_cli_command_is_regitered() -> None:
+def test_cli_command_is_registered() -> None:
     # Get the commands from the typer cli app
     create_apps_and_register.register_command(a_new_command_registered, name="a-new-command-registered")
     runner = CliRunner()

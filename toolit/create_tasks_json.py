@@ -117,7 +117,7 @@ class TaskJsonBuilder:
             "dependsOn": [f"{create_display_name(t)}" for t in tools],
             "problemMatcher": [],
         }
-        if tool_type == ToolitTypesEnum.SEQUENCIAL_GROUP:
+        if tool_type == ToolitTypesEnum.SEQUENTIAL_GROUP:
             task["dependsOrder"] = "sequence"
         if tool.__doc__:
             task["detail"] = tool.__doc__.strip()
@@ -129,7 +129,7 @@ class TaskJsonBuilder:
         if tool_type == ToolitTypesEnum.TOOL:
             args = self.create_args_for_tool(tool)
             self.create_task_entry(tool, args)
-        elif tool_type in {ToolitTypesEnum.SEQUENCIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP}:
+        elif tool_type in {ToolitTypesEnum.SEQUENTIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP}:
             self.create_task_group_entry(tool, tool_type)
 
     def create_tasks_json(self) -> dict:

@@ -8,6 +8,13 @@ To get started with Toolit, install the package via pip:
 pip install toolit
 ```
 
+If you want mcp server support, you can install the optional dependency:
+
+```bash
+pip install toolit[mcp]
+```
+Note: MCP support is not available on python 3.9, since it is not supported by the `mcp` package.
+
 ## Usage
 Add a folder called `devtools` to your project root. Create python modules, you decide the name, in this folder. Add the tool decorator to functions you want to expose as commands.
 
@@ -64,4 +71,4 @@ def my_parallel_commands() -> list[Callable]:
 This will create a group of commands in the `tasks.json` file that can be executed sequentially or in parallel.
 
 ## Contributing
-We welcome contributions to ToolIt! If you have ideas for new features, improvements, or bug fixes, please open an issue or submit a pull request on our GitHub repository. We appreciate your feedback and support in making ToolIt even better for the community.
+We welcome contributions to Toolit! If you have ideas for new features, improvements, or bug fixes, please open an issue or submit a pull request on our GitHub repository. We appreciate your feedback and support in making Toolit even better for the community.

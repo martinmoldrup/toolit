@@ -12,9 +12,9 @@ def tool(func: T) -> T:
     return func
 
 
-def sequencial_group_of_tools(func: T) -> T:
+def sequential_group_of_tools(func: T) -> T:
     """Decorate a function that returns a list of callable tools."""
-    setattr(func, MARKER_TOOL, ToolitTypesEnum.SEQUENCIAL_GROUP)
+    setattr(func, MARKER_TOOL, ToolitTypesEnum.SEQUENTIAL_GROUP)
     return func
 
 

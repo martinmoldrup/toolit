@@ -45,10 +45,10 @@ python -m toolit.create_tasks_json
 NOTE: THIS WILL OVERWRITE YOUR EXISTING `.vscode/tasks.json` FILE IF IT EXISTS!
 
 ## Chaining Commands
-You can chain multiple using the `@sequencial_group_of_tools` and `@parallel_group_of_tools` decorators to create more complex workflows. Functions decorated with these decorators should always return a list of callable functions.
+You can chain multiple using the `@sequential_group_of_tools` and `@parallel_group_of_tools` decorators to create more complex workflows. Functions decorated with these decorators should always return a list of callable functions.
 
 ```python
-from toolit import tool, sequencial_group_of_tools, parallel_group_of_tools
+from toolit import tool, sequential_group_of_tools, parallel_group_of_tools
 from typing import Callable
 
 @tool
@@ -59,7 +59,7 @@ def first_command() -> None:
 def second_command() -> None:
     print("Second command executed.")
 
-@sequencial_group_of_tools
+@sequential_group_of_tools
 def my_sequential_commands() -> list[Callable]:
     return [first_command, second_command]
 

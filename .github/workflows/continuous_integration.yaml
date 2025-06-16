@@ -1,0 +1,86 @@
+name: Continuous Integration
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+
+env:
+  UV_VERSION: 0.7.12
+
+jobs:
+    lint_and_type_check:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Install UV
+          run: |
+            curl -LsSf "https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh" | sh
+
+        - name: Install dependencies
+          run: uv sync --all-extras
+
+        - name: Run ruff
+          run: uv run ruff check toolit  --output-format=github
+
+        - name: Run mypy
+          if: always()
+          run: uv run mypy toolit
+
+    test:
+        runs-on: ubuntu-latest
+
+        strategy:
+          fail-fast: false
+          matrix:
+            python-version: ["3.10", "3.13"]
+            include-extras: [true]
+            include:
+              - python-version: "3.9"
+                include-extras: false
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Install UV
+          run: |
+            curl -LsSf "https://astral.sh/uv/${{ env.UV_VERSION }}/install.sh" | sh
+
+        - name: Pin python version
+          run: uv python pin ${{ matrix.python-version }}
+
+        - name: Install dependencies
+          run: |
+            if [ "${{ matrix.include-extras }}" = "true" ]; then
+              uv sync --all-extras
+            else
+              uv sync
+            fi
+
+        - name: Run tests
+          run: uv run pytest tests/ --junit-xml=test-results.xml
+
+        - name: Surface failing tests
+          if: always()
+          uses: pmeier/pytest-results-action@main
+          with:
+            # A list of JUnit XML files, directories containing the former, and wildcard
+            # patterns to process.
+            # See @actions/glob for supported patterns.
+            path: test-results.xml
+
+            # (Optional) Add a summary of the results at the top of the report
+            summary: true
+
+            # (Optional) Fail the workflow if no JUnit XML was found.
+            fail-on-empty: true
+
+            # (Optional) Title of the test results section in the workflow summary
+            title: Test results

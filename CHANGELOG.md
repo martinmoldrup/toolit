@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 *NOTE:* Version 0.X.X might have breaking changes in bumps of the minor version number. This is because the project is still in early development and the API is not yet stable. It will still be marked clearly in the release notes.
 
+## [0.2.0] - 16-06-2025
+- Fix problem with subdependencies not being installed
+- Add support for python 3.9
+- Make the use of MCP optional so you can use toolit without installing the `mcp` package, then it will still have the CLI and VS Code task generation features.
+- Update documentation with examples and usage instructions
+- Added continous integration with GitHub Actions to enforce code quality in the main branch
+
 ## [0.1.0] - 25-05-2025
 - Added a script to create a `.vscode/tasks.json` file for use in Visual Studio Code
 - Improved documentation with examples and usage instructions

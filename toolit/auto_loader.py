@@ -16,9 +16,10 @@ from toolit.create_apps_and_register import register_command
 from types import FunctionType, ModuleType
 from typing import Callable
 
+
 def get_items_from_folder(
     folder_path: pathlib.Path,
-    strategy: Callable[[ModuleType], list[FunctionType]]
+    strategy: Callable[[ModuleType], list[FunctionType]],
 ) -> list[FunctionType]:
     """Get items from a given folder using a strategy function."""
     if not folder_path.is_absolute():
@@ -35,9 +36,11 @@ def get_items_from_folder(
         items.extend(strategy(module))
     return items
 
+
 def tool_strategy(module: ModuleType) -> list[FunctionType]:
     """Strategy to get tools from a module."""
     return load_tools_from_file(module, ToolitTypesEnum.TOOL)
+
 
 def tool_group_strategy(module: ModuleType) -> list[FunctionType]:
     """Strategy to get tool groups from a module."""
@@ -45,6 +48,7 @@ def tool_group_strategy(module: ModuleType) -> list[FunctionType]:
     groups.extend(load_tools_from_file(module, ToolitTypesEnum.SEQUENTIAL_GROUP))
     groups.extend(load_tools_from_file(module, ToolitTypesEnum.PARALLEL_GROUP))
     return groups
+
 
 def load_tools_from_folder(folder_path: pathlib.Path) -> list[FunctionType]:
     """

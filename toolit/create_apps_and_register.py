@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typer
 from collections.abc import Callable
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -19,7 +19,7 @@ else:
         _has_mcp = False
 
 # Initialize the Typer app
-app: typer.Typer = typer.Typer()
+app: typer.Typer = typer.Typer(no_args_is_help=True)
 # Initialize the MCP server with a name, if available
 mcp: FastMCP | None = FastMCP("Toolit MCP Server") if _has_mcp else None
 

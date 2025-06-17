@@ -2,16 +2,17 @@
 
 import enum
 import json
+import typer
 import inspect
 import pathlib
-from toolit.auto_loader import get_toolit_type, get_items_from_folder, tool_strategy, tool_group_strategy
+from toolit.auto_loader import get_items_from_folder, get_toolit_type, tool_group_strategy, tool_strategy
 from toolit.constants import ToolitTypesEnum
 from types import FunctionType
 from typing import Any
-import typer
 
 PATH: pathlib.Path = pathlib.Path() / "devtools"
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
+
 
 def create_vscode_tasks_json() -> None:
     """Create a tasks.json file based on the tools discovered in the project."""

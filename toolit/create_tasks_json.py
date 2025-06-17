@@ -4,13 +4,29 @@ import enum
 import json
 import inspect
 import pathlib
-from toolit.auto_loader import get_toolit_type, load_tools_from_folder
+from toolit.auto_loader import get_toolit_type, get_items_from_folder, tool_strategy, tool_group_strategy
 from toolit.constants import ToolitTypesEnum
 from types import FunctionType
 from typing import Any
+import typer
 
 PATH: pathlib.Path = pathlib.Path() / "devtools"
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
+
+def create_vscode_tasks_json() -> None:
+    """Create a tasks.json file based on the tools discovered in the project."""
+    typer.echo(f"Creating tasks.json at {output_file_path}")
+    tools: list[FunctionType] = get_items_from_folder(PATH, tool_strategy)
+    tool_groups: list[FunctionType] = get_items_from_folder(PATH, tool_group_strategy)
+    tools.extend(tool_groups)
+    json_builder = TaskJsonBuilder()
+    for tool in tools:
+        json_builder.process_tool(tool)
+    tasks_json: dict[str, Any] = json_builder.create_tasks_json()
+
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_file_path.open("w", encoding="utf-8") as f:
+        json.dump(tasks_json, f, indent=4)
 
 
 def _is_enum(annotation: Any) -> bool:  # noqa: ANN401
@@ -23,24 +39,12 @@ def _is_bool(annotation: Any) -> bool:  # noqa: ANN401
     return annotation is bool
 
 
-def create_vscode_tasks_json(tools: list[FunctionType]) -> None:
-    """Create a tasks.json file based on the tools discovered in the project."""
-    json_builder = TaskJsonBuilder()
-    for tool in tools:
-        json_builder.process_tool(tool)
-    tasks_json: dict[str, Any] = json_builder.create_tasks_json()
-
-    output_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_file_path.open("w", encoding="utf-8") as f:
-        json.dump(tasks_json, f, indent=4)
-
-
-def create_typer_command_name(tool: FunctionType) -> str:
+def _create_typer_command_name(tool: FunctionType) -> str:
     """Create a Typer command name from a tool function name."""
     return tool.__name__.replace("_", "-").lower()
 
 
-def create_display_name(tool: FunctionType) -> str:
+def _create_display_name(tool: FunctionType) -> str:
     """Create a display name from a tool function name."""
     return tool.__name__.replace("_", " ").title()
 
@@ -54,7 +58,7 @@ class TaskJsonBuilder:
         self.input_id_map: dict[tuple[str, str], str] = {}
         self.tasks: list[dict[str, Any]] = []
 
-    def create_args_for_tool(self, tool: FunctionType) -> list[str]:
+    def _create_args_for_tool(self, tool: FunctionType) -> list[str]:
         """Create argument list and input entries for a given tool."""
         sig = inspect.signature(tool)
         args: list[str] = []
@@ -94,9 +98,9 @@ class TaskJsonBuilder:
             args.append(f'"${{input:{input_id}}}"')
         return args
 
-    def create_task_entry(self, tool: FunctionType, args: list[str]) -> None:
+    def _create_task_entry(self, tool: FunctionType, args: list[str]) -> None:
         """Create a task entry for a given tool."""
-        name_as_typer_command: str = create_typer_command_name(tool)
+        name_as_typer_command: str = _create_typer_command_name(tool)
         display_name: str = tool.__name__.replace("_", " ").title()
         task: dict[str, Any] = {
             "label": display_name,
@@ -108,13 +112,13 @@ class TaskJsonBuilder:
             task["detail"] = tool.__doc__.strip()
         self.tasks.append(task)
 
-    def create_task_group_entry(self, tool: FunctionType, tool_type: ToolitTypesEnum) -> None:
+    def _create_task_group_entry(self, tool: FunctionType, tool_type: ToolitTypesEnum) -> None:
         """Create a task group entry for a given tool."""
-        group_name: str = tool.__name__.replace("_", " ").title()
+        group_name: str = "Group: " + tool.__name__.replace("_", " ").title()
         tools: list[FunctionType] = tool()  # Call the tool to get the list of tools in the group
         task: dict[str, Any] = {
             "label": group_name,
-            "dependsOn": [f"{create_display_name(t)}" for t in tools],
+            "dependsOn": [f"{_create_display_name(t)}" for t in tools],
             "problemMatcher": [],
         }
         if tool_type == ToolitTypesEnum.SEQUENTIAL_GROUP:
@@ -127,10 +131,10 @@ class TaskJsonBuilder:
         """Process a single tool to create its task entry and inputs."""
         tool_type = get_toolit_type(tool)
         if tool_type == ToolitTypesEnum.TOOL:
-            args = self.create_args_for_tool(tool)
-            self.create_task_entry(tool, args)
+            args = self._create_args_for_tool(tool)
+            self._create_task_entry(tool, args)
         elif tool_type in {ToolitTypesEnum.SEQUENTIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP}:
-            self.create_task_group_entry(tool, tool_type)
+            self._create_task_group_entry(tool, tool_type)
 
     def create_tasks_json(self) -> dict:
         """Create the final tasks.json structure."""
@@ -143,5 +147,4 @@ class TaskJsonBuilder:
 
 
 if __name__ == "__main__":
-    tools: list[FunctionType] = load_tools_from_folder(PATH)
-    create_vscode_tasks_json(tools)
+    create_vscode_tasks_json()

@@ -1,4 +1,5 @@
 """Python script for getting the change log entry from the CHANGELOG.md file."""
+
 import pathlib
 import argparse
 

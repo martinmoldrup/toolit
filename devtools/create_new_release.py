@@ -1,4 +1,5 @@
 """Create a new release for the project, by reading the version from the pyproject.toml file, and adding and pushing a new tag to the repository."""
+
 import os
 import subprocess
 import toml
@@ -11,11 +12,13 @@ PYPROJECT_TOML = pathlib.Path(__file__).parent.parent / "pyproject.toml"
 CHANGELOG_MD = pathlib.Path(__file__).parent.parent / "CHANGELOG.md"
 PYPI_ENDPOINT = "https://pypi.org/pypi/toolit/json"
 
+
 def read_version():
     """Read the version from the pyproject.toml file."""
     with open(PYPROJECT_TOML, "r", encoding="utf-8") as file:
         data = toml.load(file)
     return data["project"]["version"]
+
 
 def check_version(version: str):
     """Check if the version is newer than the one in pypi."""
@@ -24,7 +27,8 @@ def check_version(version: str):
     print(f"Version in pypi: {pypi_version}")
     if Version(version) <= Version(pypi_version):
         raise ValueError(f"Version {version} is not newer than the one in pypi: {pypi_version}")
-    
+
+
 def check_change_log(version: str):
     """Check if the version has a corresponding entry in the change log. It will be a line starting with ## [0.0.2]"""
     with open(CHANGELOG_MD, "r", encoding="utf-8") as file:
@@ -33,6 +37,7 @@ def check_change_log(version: str):
     if not any(line.startswith(version_str) for line in lines):
         raise ValueError(f"Version {version} does not have a corresponding entry in the change log.")
     print(f"Version {version} has a corresponding entry in the change log.")
+
 
 @tool
 def create_new_release():
@@ -59,6 +64,7 @@ def create_new_release():
         raise ValueError(f"Error pushing tag {version}")
 
     print("Release created successfully.")
+
 
 if __name__ == "__main__":
     create_new_release()

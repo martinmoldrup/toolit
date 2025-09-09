@@ -5,7 +5,13 @@ import json
 import typer
 import inspect
 import pathlib
-from toolit.auto_loader import get_items_from_folder, get_toolit_type, tool_group_strategy, tool_strategy
+from toolit.auto_loader import (
+    get_items_from_folder,
+    get_plugin_tools,
+    get_toolit_type,
+    tool_group_strategy,
+    tool_strategy,
+)
 from toolit.constants import ToolitTypesEnum
 from types import FunctionType
 from typing import Any
@@ -17,9 +23,15 @@ output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
 def create_vscode_tasks_json() -> None:
     """Create a tasks.json file based on the tools discovered in the project."""
     typer.echo(f"Creating tasks.json at {output_file_path}")
-    tools: list[FunctionType] = get_items_from_folder(PATH, tool_strategy)
-    tool_groups: list[FunctionType] = get_items_from_folder(PATH, tool_group_strategy)
-    tools.extend(tool_groups)
+    if PATH.exists() and PATH.is_dir():
+        tools: list[FunctionType] = get_items_from_folder(PATH, tool_strategy)
+        tool_groups: list[FunctionType] = get_items_from_folder(PATH, tool_group_strategy)
+        tools.extend(tool_groups)
+    else:
+        typer.echo(f"The devtools folder does not exist or is not a directory: {PATH.absolute().as_posix()}")
+        tools = []
+
+    tools.extend(get_plugin_tools())
     json_builder = TaskJsonBuilder()
     for tool in tools:
         json_builder.process_tool(tool)

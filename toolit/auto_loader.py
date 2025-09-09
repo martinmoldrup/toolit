@@ -12,10 +12,11 @@ import typer
 import inspect
 import pathlib
 import importlib
+import importlib.metadata
 from toolit.constants import MARKER_TOOL, ToolitTypesEnum
 from toolit.create_apps_and_register import register_command
 from types import FunctionType, ModuleType
-from typing import Callable
+from typing import Any, Callable
 
 
 def get_items_from_folder(
@@ -49,6 +50,14 @@ def tool_group_strategy(module: ModuleType) -> list[FunctionType]:
     groups.extend(load_tools_from_file(module, ToolitTypesEnum.SEQUENTIAL_GROUP))
     groups.extend(load_tools_from_file(module, ToolitTypesEnum.PARALLEL_GROUP))
     return groups
+
+
+def load_tools_from_plugins() -> list[FunctionType]:
+    """Discover and return plugin commands via entry points."""
+    plugins = get_plugin_tools()
+    for plugin in plugins:
+        register_command(plugin)
+    return plugins
 
 
 def load_tools_from_folder(folder_path: pathlib.Path) -> list[FunctionType]:
@@ -108,3 +117,12 @@ def import_module(file: pathlib.Path) -> ModuleType:
         module_import_name = module_name
     module = importlib.import_module(module_import_name)
     return module
+
+
+def get_plugin_tools() -> list[FunctionType]:
+    """Discover and return plugin commands via entry points."""
+    plugins = []
+    for entry_point in importlib.metadata.entry_points().get("toolit_plugins", []):
+        plugin_func: Any = entry_point.load()
+        plugins.append(plugin_func)
+    return plugins

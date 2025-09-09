@@ -71,5 +71,15 @@ def my_parallel_commands() -> list[Callable]:
 
 This will create a group of commands in the `tasks.json` file that can be executed sequentially or in parallel.
 
+## Creating Plugins
+Toolit supports a plugin system that allows you to create and share your own tools as separate packages. This makes it easy to reuse tools across different projects, without needing to copy and update tools across multiple codebases.
+
+To create a plugin, follow these steps:
+1. Create a new Python package for your plugin. You can use tools like `setuptools`, `poetry` or `uv` to set up your package structure.
+2. In your package, create a module where you define your tools using the `@tool` decorator.
+3. Make sure to include `toolit` as a dependency in your package's `setup.py` or `pyproject.toml`.
+4. Register your plugin with Toolit by adding an entry point in your `setup.py` or `pyproject.toml`, so Toolit can discover your tools when the package is installed. The entry point is called `toolit_plugins`.
+5. Publish your package to PyPI or install it from a git repository where you need it.
+
 ## Contributing
 We welcome contributions to Toolit! If you have ideas for new features, improvements, or bug fixes, please open an issue or submit a pull request on our GitHub repository. We appreciate your feedback and support in making Toolit even better for the community.

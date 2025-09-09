@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+import typer
 import inspect
 import pathlib
 import importlib
@@ -15,7 +16,7 @@ from toolit.constants import MARKER_TOOL, ToolitTypesEnum
 from toolit.create_apps_and_register import register_command
 from types import FunctionType, ModuleType
 from typing import Callable
-import typer
+
 
 def get_items_from_folder(
     folder_path: pathlib.Path,
@@ -63,7 +64,7 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> list[FunctionType]:
             f"{folder_path.absolute().as_posix()}\n"
             "Please create it and add your tools there."
         )
-        typer.secho(f"\n{'='*60}\nERROR: {msg}\n{'='*60}\n", fg=typer.colors.RED, bold=True)
+        typer.secho(f"\n{'=' * 60}\nERROR: {msg}\n{'=' * 60}\n", fg=typer.colors.RED, bold=True)
         return []
     # If folder_path is relative, compute its absolute path using the current working directory.
     if not folder_path.is_absolute():

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 ## [0.3.0] - 09-09-2025
 - Added toolit `create-vscode-tasks-json` CLI command to create the `.vscode/tasks.json` file from the command line.
 - Improved error handling and user feedback when the `devtools` folder does not exist.
+- Added a plugin system to all for loading tools automatically from installed packages.
 
 ## [0.2.0] - 16-06-2025
 - Fix problem with subdependencies not being installed

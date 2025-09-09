@@ -1,6 +1,6 @@
 [project]  
 name = "toolit"  
-version = "0.2.0"  
+version = "0.3.0"  
 description = "MCP Server, Typer CLI and vscode tasks in one, provides an easy way to configure your own DevTools and python scripts in a project."
 readme = "README.md"
 requires-python = ">=3.9"  # mcp[cli] requires Python 3.10+
@@ -25,7 +25,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
 ]  
-keywords = ["mcp", "cli", "devtools", "typer", "vscode", "scripts", "python", "toolkit", "tools"]
+keywords = ["mcp", "cli", "devtools", "typer", "vscode", "scripts", "python", "toolkit", "tools", "development", "development tools"]
 authors = [
   {name = "Martin Møldrup"},
 ]
@@ -42,7 +42,9 @@ dev = [
     "mypy>=1.16.0",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.26.0",
-    "ruff>=0.11.13"
+    "requests>=2.32.4",
+    "ruff>=0.11.13",
+    "toml>=0.10.2",
 ]  
 
 [project.optional-dependencies]

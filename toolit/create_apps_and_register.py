@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
-    _has_mcp: bool = True
 else:
     # Make MCP optional
     try:
@@ -23,7 +22,10 @@ app: typer.Typer = typer.Typer(no_args_is_help=True)
 # Initialize the MCP server with a name, if available
 mcp: FastMCP | None = FastMCP("Toolit MCP Server") if _has_mcp else None
 
-
+@app.callback()
+def initialize() -> None:
+    """Welcome to the Toolit CLI!"""
+    
 def register_command(command_func: Callable[..., Any], name: str | None = None) -> None:
     """Register an external command to the CLI and MCP server if available."""
     if not callable(command_func):

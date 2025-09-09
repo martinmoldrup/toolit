@@ -102,7 +102,7 @@ class TaskJsonBuilder:
     def _create_task_entry(self, tool: FunctionType, args: list[str]) -> None:
         """Create a task entry for a given tool."""
         name_as_typer_command: str = _create_typer_command_name(tool)
-        display_name: str = tool.__name__.replace("_", " ").title()
+        display_name: str = _create_display_name(tool)
         task: dict[str, Any] = {
             "label": display_name,
             "type": "shell",

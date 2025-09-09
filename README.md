@@ -1,5 +1,5 @@
 # Toolit
-MCP Server and Typer CLI in one, provides an easy way to configure your own DevTools in a project.
+Model Context Protocol (MCP) Server, Typer CLI and Visual Studio Code tasks in one, provides an easy way to configure your own DevTools in a project.
 
 ## Installation
 To get started with Toolit, install the package via pip:
@@ -19,6 +19,7 @@ Note: MCP support is not available on python 3.9, since it is not supported by t
 Add a folder called `devtools` to your project root. Create python modules, you decide the name, in this folder. Add the tool decorator to functions you want to expose as commands.
 
 ```python
+# devtools/my_commands.py
 from toolit import tool
 @tool
 def my_command(to_print: str = "Hello, World!") -> None:

@@ -41,7 +41,7 @@ You can automatically create a `tasks.json` file for Visual Studio Code to run y
 
 To create the `.vscode/tasks.json` file, run the following command in your terminal:
 ```bash
-python -m toolit.create_tasks_json
+toolit create-vscode-tasks-json
 ```
 NOTE: THIS WILL OVERWRITE YOUR EXISTING `.vscode/tasks.json` FILE IF IT EXISTS!
 

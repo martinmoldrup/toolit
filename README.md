@@ -36,6 +36,14 @@ toolit --help  # To see available commands
 toolit my-command --to_print "Hello, Toolit!"  # To run your command
 ```
 
+### Customizing the DevTools Folder
+By default, Toolit looks for a folder named `devtools` in the project root. You can customize this by creating a `toolit.ini` or use your `pyproject.toml` file in your project root with the following content:
+
+```toml
+[toolit]
+devtools_folder = "tools"  # Change "tools" to your desired folder name
+```
+
 ## Create the VS code tasks.json file
 You can automatically create a `tasks.json` file for Visual Studio Code to run your ToolIt commands directly from the editor. This is useful for integrating your development tools into your workflow.
 
@@ -76,10 +84,13 @@ Toolit supports a plugin system that allows you to create and share your own too
 
 To create a plugin, follow these steps:
 1. Create a new Python package for your plugin. You can use tools like `setuptools`, `poetry` or `uv` to set up your package structure.
-2. In your package, create a module where you define your tools using the `@tool` decorator.
-3. Make sure to include `toolit` as a dependency in your package's `setup.py` or `pyproject.toml`.
-4. Register your plugin with Toolit by adding an entry point in your `setup.py` or `pyproject.toml`, so Toolit can discover your tools when the package is installed. The entry point is called `toolit_plugins`.
-5. Publish your package to PyPI or install it from a git repository where you need it.
+2. In your package, create one or several modules where you define your tools using the `@tool` decorator.
+3. You can include your own user-configurations, and load them using the `get_config_value` function from the `toolit.config` module.
+4. Make sure to include `toolit` as a dependency in your package's `setup.py` or `pyproject.toml`.
+5. Register your plugin with Toolit by adding an entry point in your `setup.py` or `pyproject.toml`, so Toolit can discover your tools when the package is installed. The entry point is called `toolit_plugins`.
+6. Publish your package to PyPI or install it from a git repository where you need it.
+
+See an example plugin here: [toolit-azure-devops-trunk-based-branching](https://github.com/martinmoldrup/toolit-azure-devops-trunk-based-branching)
 
 ## Contributing
 We welcome contributions to Toolit! If you have ideas for new features, improvements, or bug fixes, please open an issue or submit a pull request on our GitHub repository. We appreciate your feedback and support in making Toolit even better for the community.

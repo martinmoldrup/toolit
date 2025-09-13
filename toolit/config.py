@@ -18,7 +18,10 @@ def load_ini_config(file_path: pathlib.Path) -> Dict[str, Any]:
     """Load configuration from a toolit.ini file."""
     if not file_path.is_file():
         return {}
-    return toml.load(file_path)
+    configurations = toml.load(file_path)
+    if "toolit" in configurations:
+        return configurations["toolit"]
+    return configurations
 
 def load_pyproject_config(file_path: pathlib.Path) -> Dict[str, Any]:
     """Load configuration from a pyproject.toml file."""

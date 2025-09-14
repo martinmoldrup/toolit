@@ -12,11 +12,12 @@ from toolit.auto_loader import (
     tool_group_strategy,
     tool_strategy,
 )
+from toolit.config import load_devtools_folder
 from toolit.constants import ToolitTypesEnum
 from types import FunctionType
 from typing import Any
 
-PATH: pathlib.Path = pathlib.Path() / "devtools"
+PATH: pathlib.Path = load_devtools_folder()
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
 
 

@@ -2,9 +2,11 @@
 
 import pathlib
 from toolit.auto_loader import load_tools_from_folder
+from toolit.config import load_devtools_folder
 from toolit.create_apps_and_register import mcp
 
-PATH = pathlib.Path() / "devtools"
+PATH: pathlib.Path = load_devtools_folder()
+
 load_tools_from_folder(PATH)
 
 if __name__ == "__main__":

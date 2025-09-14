@@ -12,7 +12,7 @@ import toml
 import pathlib
 from .constants import ConfigFileKeys
 from functools import lru_cache
-from typing import Callable
+from typing import Callable, overload
 
 
 def load_ini_config(file_path: pathlib.Path) -> dict[str, str]:
@@ -51,8 +51,15 @@ def _load_config() -> dict[str, str]:
     return config
 
 
+@overload
+def get_config_value(key: str, default: None = None) -> str | None: ...
+
+@overload
+def get_config_value(key: str, default: str) -> str: ...
+
+
 def get_config_value(key: str, default: str | None = None) -> str | None:
-    """Get a configuration value by key."""
+    """Get a configuration value by key with type-safe default."""
     config: dict[str, str] = _load_config()
     return config.get(key, default)
 

@@ -41,7 +41,7 @@ By default, Toolit looks for a folder named `devtools` in the project root. You 
 
 ```toml
 [toolit]
-devtools_folder = "tools"  # Change "tools" to your desired folder name
+tools_folder = "tools"
 ```
 
 ## Create the VS code tasks.json file

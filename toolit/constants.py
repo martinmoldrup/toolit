@@ -5,7 +5,7 @@ import enum
 MARKER_TOOL = "__toolit_tool_type__"
 
 
-class ConfigFileKeysEnum:
+class ConfigFileKeys:
     """Namespace for the different configuration file keys for user configuration."""
 
     TOOLS_FOLDER: str = "tools_folder"

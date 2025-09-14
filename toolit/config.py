@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import toml
 import pathlib
-from .constants import ConfigFileKeysEnum
+from .constants import ConfigFileKeys
 from functools import lru_cache
 from typing import Callable
 
@@ -59,5 +59,5 @@ def get_config_value(key: str, default: str | None = None) -> str | None:
 
 def load_devtools_folder() -> pathlib.Path:
     """Load the tools folder path from configuration or use default."""
-    folder = get_config_value(ConfigFileKeysEnum.TOOLS_FOLDER, ConfigFileKeysEnum.TOOLS_FOLDER_DEFAULT)
-    return pathlib.Path(folder) if isinstance(folder, str) else pathlib.Path(ConfigFileKeysEnum.TOOLS_FOLDER_DEFAULT)
+    folder = get_config_value(ConfigFileKeys.TOOLS_FOLDER, ConfigFileKeys.TOOLS_FOLDER_DEFAULT)
+    return pathlib.Path(folder)

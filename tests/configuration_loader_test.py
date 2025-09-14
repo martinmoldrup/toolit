@@ -4,7 +4,7 @@ import toml
 import pytest
 import pathlib
 from toolit import config
-from toolit.constants import ConfigFileKeysEnum
+from toolit.constants import ConfigFileKeys
 
 
 def create_toml_file(path: pathlib.Path, data: dict) -> None:
@@ -84,14 +84,13 @@ def test_load_devtools_folder_returns_configured_path(monkeypatch: pytest.Monkey
     monkeypatch.setattr(
         config,
         "get_config_value",
-        lambda key, default=None: folder if key == ConfigFileKeysEnum.TOOLS_FOLDER else default,
+        lambda key, default=None: folder if key == ConfigFileKeys.TOOLS_FOLDER else default,
     )
     result: pathlib.Path = config.load_devtools_folder()
     assert str(result) == folder
 
 
-def test_load_devtools_folder_returns_default_path(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_devtools_folder_returns_default_path() -> None:
     """Test load_devtools_folder returns default folder path if not configured."""
-    monkeypatch.setattr(config, "get_config_value", lambda key, default=None: None)
     result: pathlib.Path = config.load_devtools_folder()
-    assert str(result) == ConfigFileKeysEnum.TOOLS_FOLDER_DEFAULT
+    assert str(result) == ConfigFileKeys.TOOLS_FOLDER_DEFAULT

@@ -62,4 +62,4 @@ build-backend = "setuptools.build_meta"
 packages = ["toolit"]  
 
 [tool.setuptools.package-data]
-snappylapy = ["py.typed"]
+toolit = ["py.typed"]

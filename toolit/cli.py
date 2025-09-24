@@ -7,7 +7,7 @@ from toolit.create_tasks_json import create_vscode_tasks_json
 
 load_tools_from_folder(load_devtools_folder())
 load_tools_from_plugins()
-register_command(create_vscode_tasks_json, rich_help_panel=RichHelpPanelNames.NAME_OF_THE_RICH_GROUP_HELP_PANEL_PLUGINS)
+register_command(create_vscode_tasks_json, rich_help_panel=RichHelpPanelNames.PLUGINS_COMMANDS_PANEL)
 
 
 if __name__ == "__main__":

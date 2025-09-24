@@ -29,7 +29,11 @@ def initialize() -> None:
     """Welcome to the Toolit CLI."""
 
 
-def register_command(command_func: Callable[..., Any], name: str | None = None, rich_help_panel: str|None = None) -> None:
+def register_command(
+    command_func: Callable[..., Any],
+    name: str | None = None,
+    rich_help_panel: str | None = None,
+) -> None:
     """Register an external command to the CLI and MCP server if available."""
     if not callable(command_func):
         msg = f"Command function {command_func} is not callable."

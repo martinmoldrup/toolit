@@ -56,7 +56,7 @@ def load_tools_from_plugins() -> list[FunctionType]:
     """Discover and return plugin commands via entry points."""
     plugins = get_plugin_tools()
     for plugin in plugins:
-        register_command(plugin, rich_help_panel=RichHelpPanelNames.NAME_OF_THE_RICH_GROUP_HELP_PANEL_PLUGINS)
+        register_command(plugin, rich_help_panel=RichHelpPanelNames.PLUGINS_COMMANDS_PANEL)
     return plugins
 
 
@@ -83,7 +83,7 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> list[FunctionType]:
     tool_groups: list[FunctionType] = get_items_from_folder(folder_path, tool_group_strategy)
     # Register each tool as a command
     for tool in tools:
-        register_command(tool, rich_help_panel=RichHelpPanelNames.NAME_OF_THE_RICH_GROUP_HELP_PANEL_PROJECT)
+        register_command(tool, rich_help_panel=RichHelpPanelNames.PROJECT_COMMANDS_PANEL)
     return tools + tool_groups
 
 

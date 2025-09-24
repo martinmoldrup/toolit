@@ -13,7 +13,7 @@ import inspect
 import pathlib
 import importlib
 import importlib.metadata
-from toolit.constants import MARKER_TOOL, ToolitTypesEnum
+from toolit.constants import MARKER_TOOL, RichHelpPanelNames, ToolitTypesEnum
 from toolit.create_apps_and_register import register_command
 from types import FunctionType, ModuleType
 from typing import Any, Callable
@@ -56,7 +56,7 @@ def load_tools_from_plugins() -> list[FunctionType]:
     """Discover and return plugin commands via entry points."""
     plugins = get_plugin_tools()
     for plugin in plugins:
-        register_command(plugin)
+        register_command(plugin, rich_help_panel=RichHelpPanelNames.PLUGINS_COMMANDS_PANEL)
     return plugins
 
 
@@ -83,7 +83,7 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> list[FunctionType]:
     tool_groups: list[FunctionType] = get_items_from_folder(folder_path, tool_group_strategy)
     # Register each tool as a command
     for tool in tools:
-        register_command(tool)
+        register_command(tool, rich_help_panel=RichHelpPanelNames.PROJECT_COMMANDS_PANEL)
     return tools + tool_groups
 
 
@@ -124,5 +124,6 @@ def get_plugin_tools() -> list[FunctionType]:
     plugins = []
     for entry_point in importlib.metadata.entry_points().get("toolit_plugins", []):
         plugin_func: Any = entry_point.load()
+        plugin_func.__name__ = entry_point.name
         plugins.append(plugin_func)
     return plugins

@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 *NOTE:* Version 0.X.X might have breaking changes in bumps of the minor version number. This is because the project is still in early development and the API is not yet stable. It will still be marked clearly in the release notes.
 
+## [0.5.0] - 24-09-2025
+- Improvements to the plugin system. Plugins can choose their own names and the plugins is show in a seperate section in the rich help panel.
+
 ## [0.4.0] - 14-09-2025
 - Add ability to customize configurations in a toolit.ini or pyproject.toml file in the project root. Makes the devtools folder configurable, and allows plugins to add their own configurations.
 

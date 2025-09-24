@@ -1,12 +1,13 @@
 """CLI entry point for the toolit package."""
-from .auto_loader import load_tools_from_folder, load_tools_from_plugins, register_command
-from .config import load_devtools_folder
-from .create_apps_and_register import app
-from .create_tasks_json import create_vscode_tasks_json
+from toolit.auto_loader import load_tools_from_folder, load_tools_from_plugins, register_command
+from toolit.config import load_devtools_folder
+from toolit.constants import RichHelpPanelNames
+from toolit.create_apps_and_register import app
+from toolit.create_tasks_json import create_vscode_tasks_json
 
 load_tools_from_folder(load_devtools_folder())
 load_tools_from_plugins()
-register_command(create_vscode_tasks_json)
+register_command(create_vscode_tasks_json, rich_help_panel=RichHelpPanelNames.NAME_OF_THE_RICH_GROUP_HELP_PANEL_PLUGINS)
 
 
 if __name__ == "__main__":

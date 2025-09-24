@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import toml
 import pathlib
-from .constants import ConfigFileKeys
 from functools import lru_cache
+from toolit.constants import ConfigFileKeys
 from typing import Callable, overload
 
 

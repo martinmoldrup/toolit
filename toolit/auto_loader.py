@@ -123,7 +123,7 @@ def import_module(file: pathlib.Path) -> ModuleType:
     return module
 
 
-def get_entry_point(name: str) -> importlib.metadata.EntryPoints:
+def get_entry_points(name: str) -> importlib.metadata.EntryPoints:
     """Get entry points by group name."""
     entry_points = importlib.metadata.entry_points()
     return entry_points.select(group=name)
@@ -132,8 +132,8 @@ def get_entry_point(name: str) -> importlib.metadata.EntryPoints:
 def get_plugin_tools() -> list[FunctionType]:
     """Discover and return plugin commands via entry points."""
     plugins: list[FunctionType] = []
-    entry_point_group = get_entry_point("toolit_plugins")
-    for entry_point in entry_point_group:
+    entry_points = get_entry_points("toolit_plugins")
+    for entry_point in entry_points:
         plugin_func: Any = entry_point.load()
         plugin_func.__name__ = entry_point.name
         plugins.append(plugin_func)

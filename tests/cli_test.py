@@ -11,7 +11,7 @@ def test_cli_run_with_no_tools() -> None:
 
 
 def test_cli_loads_tools_and_plugins_without_plugins() -> None:
-    from toolit.auto_loader import register_all_tools_from_folder_and_plugin
+    from toolit.register_all_tool_and_plugins import register_all_tools_from_folder_and_plugin
     register_all_tools_from_folder_and_plugin()
     runner = CliRunner()
     result = runner.invoke(create_apps_and_register.app, ["--help"])

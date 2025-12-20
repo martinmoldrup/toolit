@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import toml
 import pathlib
+from collections.abc import Callable
 from functools import lru_cache
 from toolit.constants import ConfigFileKeys
-from typing import Callable, overload
+from typing import overload
 
 
 def load_ini_config(file_path: pathlib.Path) -> dict[str, str]:

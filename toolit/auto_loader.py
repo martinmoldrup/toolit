@@ -100,7 +100,7 @@ def get_toolit_type(tool: FunctionType) -> ToolitTypesEnum | None:
 
 def load_tools_from_file(module: ModuleType, tool_type: ToolitTypesEnum) -> list[FunctionType]:
     """Load a tool from a given file and register it as a command."""
-    tools = []
+    tools: list[FunctionType] = []
     for _name, obj in inspect.getmembers(module):
         is_tool: bool = get_toolit_type(obj) == tool_type
         if inspect.isfunction(obj) and is_tool:
@@ -123,7 +123,7 @@ def import_module(file: pathlib.Path) -> ModuleType:
     return module
 
 
-def get_entry_point(name: str) -> importlib.metadata.EntryPoints | None:
+def get_entry_point(name: str) -> importlib.metadata.EntryPoints:
     """Get entry points by group name."""
     entry_points = importlib.metadata.entry_points()
     return entry_points.select(group=name)
@@ -133,8 +133,6 @@ def get_plugin_tools() -> list[FunctionType]:
     """Discover and return plugin commands via entry points."""
     plugins: list[FunctionType] = []
     entry_point_group = get_entry_point("toolit_plugins")
-    if entry_point_group is None:
-        return plugins
     for entry_point in entry_point_group:
         plugin_func: Any = entry_point.load()
         plugin_func.__name__ = entry_point.name

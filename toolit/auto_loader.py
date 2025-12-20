@@ -14,10 +14,13 @@ import inspect
 import pathlib
 import importlib
 import importlib.metadata
+from collections.abc import Callable
+from toolit.config import load_devtools_folder
 from toolit.constants import MARKER_TOOL, RichHelpPanelNames, ToolitTypesEnum
 from toolit.create_apps_and_register import register_command
+from toolit.create_tasks_json import create_vscode_tasks_json
 from types import FunctionType, ModuleType
-from typing import Any, Callable
+from typing import Any
 
 
 def get_items_from_folder(
@@ -137,3 +140,10 @@ def get_plugin_tools() -> list[FunctionType]:
         plugin_func.__name__ = entry_point.name
         plugins.append(plugin_func)
     return plugins
+
+
+def register_all_tools_from_folder_and_plugin() -> None:
+    """Load and register all tools that will be used by default."""
+    load_tools_from_folder(load_devtools_folder())
+    load_tools_from_plugins()
+    register_command(create_vscode_tasks_json, rich_help_panel=RichHelpPanelNames.PLUGINS_COMMANDS_PANEL)

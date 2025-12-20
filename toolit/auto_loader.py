@@ -4,6 +4,7 @@ Load tools automatically from a folder and register them as commands.
 A folder is defined. Everything that has the @decorators.tool decorator will be loaded
 and added as CLI and MCP commands.
 """
+
 from __future__ import annotations
 
 import os
@@ -119,10 +120,19 @@ def import_module(file: pathlib.Path) -> ModuleType:
     return module
 
 
+def get_entry_point(name: str) -> importlib.metadata.EntryPoints | None:
+    """Get entry points by group name."""
+    entry_points = importlib.metadata.entry_points()
+    return entry_points.select(group=name)
+
+
 def get_plugin_tools() -> list[FunctionType]:
     """Discover and return plugin commands via entry points."""
-    plugins = []
-    for entry_point in importlib.metadata.entry_points().get("toolit_plugins", []):
+    plugins: list[FunctionType] = []
+    entry_point_group = get_entry_point("toolit_plugins")
+    if entry_point_group is None:
+        return plugins
+    for entry_point in entry_point_group:
         plugin_func: Any = entry_point.load()
         plugin_func.__name__ = entry_point.name
         plugins.append(plugin_func)

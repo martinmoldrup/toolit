@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 *NOTE:* Version 0.X.X might have breaking changes in bumps of the minor version number. This is because the project is still in early development and the API is not yet stable. It will still be marked clearly in the release notes.
 
+## [0.6.0] - 20-12-2025
+- Abanddon python 3.9 which is deprecated. Now only support python 3.10 and higher.
+
 ## [0.5.0] - 24-09-2025
 - Improvements to the plugin system. Plugins can choose their own names and the plugins is show in a seperate section in the rich help panel.
 

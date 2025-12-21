@@ -136,4 +136,3 @@ def get_plugin_tools() -> list[FunctionType]:
         plugin_func.__name__ = entry_point.name
         plugins.append(plugin_func)
     return plugins
-

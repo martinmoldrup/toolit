@@ -1,7 +1,8 @@
 """Decorator to tell if a function is a tool."""
 
+from collections.abc import Callable
 from toolit.constants import MARKER_TOOL, ToolitTypesEnum
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T", bound=Callable[..., Any])
 

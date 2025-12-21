@@ -4,6 +4,7 @@ Load tools automatically from a folder and register them as commands.
 A folder is defined. Everything that has the @decorators.tool decorator will be loaded
 and added as CLI and MCP commands.
 """
+
 from __future__ import annotations
 
 import os
@@ -13,10 +14,11 @@ import inspect
 import pathlib
 import importlib
 import importlib.metadata
+from collections.abc import Callable
 from toolit.constants import MARKER_TOOL, RichHelpPanelNames, ToolitTypesEnum
 from toolit.create_apps_and_register import register_command
 from types import FunctionType, ModuleType
-from typing import Any, Callable
+from typing import Any
 
 
 def get_items_from_folder(
@@ -96,7 +98,7 @@ def get_toolit_type(tool: FunctionType) -> ToolitTypesEnum | None:
 
 def load_tools_from_file(module: ModuleType, tool_type: ToolitTypesEnum) -> list[FunctionType]:
     """Load a tool from a given file and register it as a command."""
-    tools = []
+    tools: list[FunctionType] = []
     for _name, obj in inspect.getmembers(module):
         is_tool: bool = get_toolit_type(obj) == tool_type
         if inspect.isfunction(obj) and is_tool:
@@ -119,10 +121,17 @@ def import_module(file: pathlib.Path) -> ModuleType:
     return module
 
 
+def get_entry_points(name: str) -> importlib.metadata.EntryPoints:
+    """Get entry points by group name."""
+    entry_points = importlib.metadata.entry_points()
+    return entry_points.select(group=name)
+
+
 def get_plugin_tools() -> list[FunctionType]:
     """Discover and return plugin commands via entry points."""
-    plugins = []
-    for entry_point in importlib.metadata.entry_points().get("toolit_plugins", []):
+    plugins: list[FunctionType] = []
+    entry_points = get_entry_points("toolit_plugins")
+    for entry_point in entry_points:
         plugin_func: Any = entry_point.load()
         plugin_func.__name__ = entry_point.name
         plugins.append(plugin_func)

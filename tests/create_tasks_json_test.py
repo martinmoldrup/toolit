@@ -1,18 +1,16 @@
 """Tests for create_tasks_json type annotation handling."""
 
-import inspect
-from typing import Any, Optional
-
 import pytest
-
-from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string
+import inspect
+from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string  # noqa: PLC2701
+from typing import Any, Optional
 
 
 def _tool_with_pep604_optional(input_dataset_name: str | None = None) -> None:
     """Tool with a PEP 604 optional argument."""
 
 
-def _tool_with_typing_optional(input_dataset_name: Optional[str] = None) -> None:
+def _tool_with_typing_optional(input_dataset_name: str | None = None) -> None:
     """Tool with a typing.Optional argument."""
 
 
@@ -28,7 +26,7 @@ def test_create_args_for_tool_handles_pep604_optional() -> None:
     """Ensure str | None annotations do not crash and are rendered in descriptions."""
     builder = TaskJsonBuilder()
 
-    args = builder._create_args_for_tool(_tool_with_pep604_optional)
+    args = builder._create_args_for_tool(_tool_with_pep604_optional)  # noqa: SLF001
 
     assert args == ['"${input:_tool_with_pep604_optional_input_dataset_name}"']
     assert builder.inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
@@ -39,7 +37,7 @@ def test_create_args_for_tool_handles_typing_optional() -> None:
     """Ensure typing.Optional[str] annotations do not crash and are rendered in descriptions."""
     builder = TaskJsonBuilder()
 
-    args = builder._create_args_for_tool(_tool_with_typing_optional)
+    args = builder._create_args_for_tool(_tool_with_typing_optional)  # noqa: SLF001
 
     assert args == ['"${input:_tool_with_typing_optional_input_dataset_name}"']
     assert builder.inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
@@ -66,7 +64,9 @@ def test_create_args_for_tool_raises_on_missing_type_hint() -> None:
     """Ensure a missing type hint raises ValueError with an instructive message."""
     builder = TaskJsonBuilder()
 
-    with pytest.raises(ValueError, match="Parameter 'to_print' in function '_tool_without_type_hint' is missing a type annotation"):
+    with pytest.raises(
+        ValueError, match="Parameter 'to_print' in function '_tool_without_type_hint' is missing a type annotation"
+    ):
         builder._create_args_for_tool(_tool_without_type_hint)
 
 

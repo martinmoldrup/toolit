@@ -1,15 +1,11 @@
 """Create a vscode tasks.json file based on the tools discovered in the project."""
 
 import enum
-import inspect
 import json
-import pathlib
-import types
-from types import FunctionType
-from typing import Any, Union, get_args, get_origin
-
 import typer
-
+import types
+import inspect
+import pathlib
 from toolit.auto_loader import (
     get_items_from_folder,
     get_plugin_tools,
@@ -19,6 +15,8 @@ from toolit.auto_loader import (
 )
 from toolit.config import load_devtools_folder
 from toolit.constants import ToolitTypesEnum
+from types import FunctionType
+from typing import Any, Union, get_args, get_origin
 
 PATH: pathlib.Path = load_devtools_folder()
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
@@ -119,9 +117,12 @@ class TaskJsonBuilder:
 
             annotation = param.annotation
             if annotation is inspect.Parameter.empty:
-                raise ValueError(
+                msg = (
                     f"Parameter '{param.name}' in function '{tool.__name__}' is missing a type annotation. "
                     f"Please add a type hint, e.g.: def {tool.__name__}({param.name}: str) -> None"
+                )
+                raise ValueError(
+                    msg,
                 )
             input_type: str = "promptString"
             input_options: dict[str, Any] = {}

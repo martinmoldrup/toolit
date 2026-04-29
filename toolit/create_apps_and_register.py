@@ -8,6 +8,7 @@ import types
 import inspect
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
+from toolit.list_serialization import serialize_list_default
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -70,10 +71,8 @@ def _coerce_enum_item(enum_type: type[enum.Enum], value: str) -> enum.Enum:
     raise typer.BadParameter(msg)
 
 
-def _coerce_list_items(raw_value: str | None, item_type: Any) -> list[Any] | None:  # noqa: ANN401
+def _coerce_list_items(raw_value: str, item_type: Any) -> list[Any]:  # noqa: ANN401
     """Convert a comma-separated string into a typed list for list-annotated parameters."""
-    if raw_value is None:
-        return None
     tokens = [token.strip() for token in raw_value.split(",") if token.strip()]
     if item_type is int:
         converted_ints: list[int] = []
@@ -104,7 +103,7 @@ def _build_cli_command(command_func: Callable[..., Any]) -> Callable[..., Any]:
         list_item_types[parameter.name] = list_item_type
         replacement_default = parameter.default
         if isinstance(parameter.default, list):
-            replacement_default = ", ".join(str(item.value) if isinstance(item, enum.Enum) else str(item) for item in parameter.default)
+            replacement_default = serialize_list_default(parameter.default)
 
         cli_parameters.append(parameter.replace(annotation=str, default=replacement_default))
 
@@ -119,6 +118,8 @@ def _build_cli_command(command_func: Callable[..., Any]) -> Callable[..., Any]:
         for name, item_type in list_item_types.items():
             raw_value = converted_arguments.get(name)
             if raw_value is None:
+                # Preserve omitted optional list arguments as None.
+                converted_arguments[name] = None
                 continue
             converted_arguments[name] = _coerce_list_items(str(raw_value), item_type)
         return command_func(**converted_arguments)

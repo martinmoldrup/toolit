@@ -15,6 +15,7 @@ from toolit.auto_loader import (
 )
 from toolit.config import load_devtools_folder
 from toolit.constants import ToolitTypesEnum
+from toolit.list_serialization import serialize_list_default
 from types import FunctionType
 from typing import Any, Union, get_args, get_origin
 
@@ -89,23 +90,8 @@ def _extract_list_item_type(annotation: Any) -> Any | None:  # noqa: ANN401
             args = get_args(candidate)
             if args:
                 return args[0]
-            return Any
+            return str
     return None
-
-
-def _serialize_list_default(default_value: Any) -> str | None:  # noqa: ANN401
-    """Serialize Python list defaults to comma-separated values for VS Code prompts."""
-    if default_value is None:
-        return None
-    if isinstance(default_value, list):
-        rendered_items: list[str] = []
-        for item in default_value:
-            if isinstance(item, enum.Enum):
-                rendered_items.append(str(item.value))
-            else:
-                rendered_items.append(str(item))
-        return ", ".join(rendered_items)
-    return str(default_value)
 
 
 def _build_list_description(param_name: str, list_item_type: Any) -> str:  # noqa: ANN401
@@ -186,7 +172,7 @@ class TaskJsonBuilder:
         list_item_type = _extract_list_item_type(annotation)
         if list_item_type is not None:
             description = _build_list_description(param.name, list_item_type)
-            default_value = "" if param.default == inspect.Parameter.empty else _serialize_list_default(param.default)
+            default_value = "" if param.default == inspect.Parameter.empty else serialize_list_default(param.default)
             return input_type, input_options, description, default_value
 
         enum_type = _extract_enum_type(annotation)

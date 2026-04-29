@@ -130,4 +130,46 @@ def test_cli_list_enum_input_accepts_enum_names_and_values() -> None:
     assert captured["levels"] == [TestLevel.LOW, TestLevel.HIGH]
 
 
+def test_cli_optional_list_omitted_preserves_none_default() -> None:
+    captured: dict[str, list[str] | None] = {}
+
+    def optional_list_tool(values: list[str] | None = None) -> None:
+        captured["values"] = values
+
+    create_apps_and_register.register_command(
+        optional_list_tool,
+        name="test-optional-list-omitted-preserves-none-default",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        create_apps_and_register.app,
+        ["test-optional-list-omitted-preserves-none-default"],
+    )
+
+    assert result.exit_code == 0
+    assert captured["values"] is None
+
+
+def test_cli_optional_list_comma_only_input_becomes_empty_list() -> None:
+    captured: dict[str, list[str] | None] = {}
+
+    def optional_list_tool(values: list[str] | None = None) -> None:
+        captured["values"] = values
+
+    create_apps_and_register.register_command(
+        optional_list_tool,
+        name="test-optional-list-comma-only-input-becomes-empty-list",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        create_apps_and_register.app,
+        ["test-optional-list-comma-only-input-becomes-empty-list", "--values", ","],
+    )
+
+    assert result.exit_code == 0
+    assert captured["values"] == []
+
+
 

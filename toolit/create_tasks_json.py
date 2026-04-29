@@ -1,10 +1,15 @@
 """Create a vscode tasks.json file based on the tools discovered in the project."""
 
 import enum
-import json
-import typer
 import inspect
+import json
 import pathlib
+import types
+from types import FunctionType
+from typing import Any, Union, get_args, get_origin
+
+import typer
+
 from toolit.auto_loader import (
     get_items_from_folder,
     get_plugin_tools,
@@ -14,8 +19,6 @@ from toolit.auto_loader import (
 )
 from toolit.config import load_devtools_folder
 from toolit.constants import ToolitTypesEnum
-from types import FunctionType
-from typing import Any
 
 PATH: pathlib.Path = load_devtools_folder()
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
@@ -53,6 +56,38 @@ def _is_bool(annotation: Any) -> bool:  # noqa: ANN401
     return annotation is bool
 
 
+def _annotation_to_string(annotation: Any) -> str:  # noqa: ANN401
+    """Convert Python type annotations to readable strings."""
+    result: str
+
+    if annotation == inspect.Parameter.empty:
+        result = "str"
+    elif annotation is Any:
+        result = "Any"
+    elif annotation is None or annotation is type(None):
+        result = "None"
+    else:
+        origin = get_origin(annotation)
+        args = get_args(annotation)
+
+        union_type = getattr(types, "UnionType", None)
+        if origin is Union or (union_type is not None and origin is union_type):
+            result = " | ".join(_annotation_to_string(arg) for arg in args)
+        elif origin is not None:
+            origin_name = getattr(origin, "__name__", str(origin).replace("typing.", ""))
+            if args:
+                args_repr = ", ".join(_annotation_to_string(arg) for arg in args)
+                result = f"{origin_name}[{args_repr}]"
+            else:
+                result = origin_name
+        elif hasattr(annotation, "__name__"):
+            result = annotation.__name__
+        else:
+            result = str(annotation).replace("typing.", "")
+
+    return result
+
+
 def _create_typer_command_name(tool: FunctionType) -> str:
     """Create a Typer command name from a tool function name."""
     return tool.__name__.replace("_", "-").lower()
@@ -85,10 +120,7 @@ class TaskJsonBuilder:
             annotation = param.annotation
             input_type: str = "promptString"
             input_options: dict[str, Any] = {}
-            description: str = "Enter value for {param_name} ({type})".format(
-                param_name=param.name,
-                type=annotation.__name__ if annotation != inspect.Parameter.empty else "str",
-            )
+            description: str = f"Enter value for {param.name} ({_annotation_to_string(annotation)})"
             default_value: Any = "" if param.default == inspect.Parameter.empty else param.default
 
             if _is_enum(annotation):

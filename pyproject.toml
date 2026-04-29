@@ -1,6 +1,6 @@
 [project]  
 name = "toolit"  
-version = "0.6.0"  
+version = "0.7.0"  
 description = "MCP Server, Typer CLI and vscode tasks in one, provides an easy way to configure your own DevTools and python scripts in a project."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -51,12 +51,12 @@ dev = [
 mcp = ["mcp[cli]"]
 
 [project.scripts]
-toolit = "toolit.cli:app"
-  
+toolit = "toolit.cli:main"
+
 [build-system]  
 requires = ["setuptools>=61.0"]  
 build-backend = "setuptools.build_meta"  
-  
+
 [tool.setuptools]  
 packages = ["toolit"]  
 

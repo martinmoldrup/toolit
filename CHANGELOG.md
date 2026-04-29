@@ -3,9 +3,11 @@ All notable changes to this project will be documented in this file.
 
 *NOTE:* Version 0.X.X might have breaking changes in bumps of the minor version number. This is because the project is still in early development and the API is not yet stable. It will still be marked clearly in the release notes.
 
-## [0.7.0] - 27-06-2026
+## [0.7.0] - Unreleased
 - Added support for the Optional and Union type hints in the CLI arguments. This allows for more flexible command definitions and better type checking.
+- Improved support for list parameters in the CLI, and handled the vscode tasks generation for list parameters appropriately.
 - Raise an error if a proper type hint is not provided for a parameter in a tool function.
+- Make it possible to invoke the CLI using `python -m toolit` in addition to the `toolit` command, which is useful for environments where the command might not be available (or when there is a specific venv or python version you want to use).
 
 ## [0.6.0] - 20-12-2025
 - Abandon python 3.9 which is deprecated. Now only support python 3.10 and higher.

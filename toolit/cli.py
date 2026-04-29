@@ -4,6 +4,11 @@ from toolit.register_all_tool_and_plugins import register_all_tools_from_folder_
 
 register_all_tools_from_folder_and_plugin()
 
-if __name__ == "__main__":
-    # Run the typer app
+
+def main() -> None:
+    """Register tools and run the Typer application."""
     app()
+
+
+if __name__ == "__main__":
+    main()

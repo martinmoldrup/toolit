@@ -53,6 +53,15 @@ toolit create-vscode-tasks-json
 ```
 NOTE: THIS WILL OVERWRITE YOUR EXISTING `.vscode/tasks.json` FILE IF IT EXISTS!
 
+### List parameter inputs in VS Code tasks
+
+VS Code task inputs do not support native list pickers. For tool parameters typed as `list[str]`, `list[int]`, or `list[Enum]`, Toolit generates a `promptString` input and expects comma-separated values.
+
+Examples:
+- `list[str]`: `alice, bob, charlie`
+- `list[int]`: `1, 2, 3`
+- `list[MyEnum]`: accepts both enum names and enum values, for example `OPTION_A, Option b`
+
 ## Chaining Commands
 You can chain multiple using the `@sequential_group_of_tools` and `@parallel_group_of_tools` decorators to create more complex workflows. Functions decorated with these decorators should always return a list of callable functions.
 

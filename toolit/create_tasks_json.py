@@ -22,6 +22,21 @@ PATH: pathlib.Path = load_devtools_folder()
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
 
 
+def serialize_list_default(default_value: Any) -> str | None:  # noqa: ANN401
+    """Serialize list defaults to comma-separated text using enum values when needed."""
+    if default_value is None:
+        return None
+    if isinstance(default_value, list):
+        rendered_items: list[str] = []
+        for item in default_value:
+            if isinstance(item, enum.Enum):
+                rendered_items.append(str(item.value))
+            else:
+                rendered_items.append(str(item))
+        return ", ".join(rendered_items)
+    return str(default_value)
+
+
 def create_vscode_tasks_json() -> None:
     """Create a tasks.json file based on the tools discovered in the project."""
     typer.echo(f"Creating tasks.json at {output_file_path}")
@@ -52,6 +67,61 @@ def _is_enum(annotation: Any) -> bool:  # noqa: ANN401
 def _is_bool(annotation: Any) -> bool:  # noqa: ANN401
     """Check if the annotation is a bool type."""
     return annotation is bool
+
+
+def _unwrap_union_annotations(annotation: Any) -> list[Any]:  # noqa: ANN401
+    """Return union members for `X | Y` / `Union[X, Y]`, or the annotation itself."""
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    union_type = getattr(types, "UnionType", None)
+    if origin is Union or (union_type is not None and origin is union_type):
+        return list(args)
+    return [annotation]
+
+
+def _extract_enum_type(annotation: Any) -> type[enum.Enum] | None:  # noqa: ANN401
+    """Extract enum type from an annotation, including optional/union wrappers."""
+    for candidate in _unwrap_union_annotations(annotation):
+        if candidate in {None, type(None)}:
+            continue
+        if _is_enum(candidate):
+            return candidate
+    return None
+
+
+def _contains_bool(annotation: Any) -> bool:  # noqa: ANN401
+    """Check whether an annotation contains bool directly or via union/optional."""
+    return any(_is_bool(candidate) for candidate in _unwrap_union_annotations(annotation))
+
+
+def _extract_list_item_type(annotation: Any) -> Any | None:  # noqa: ANN401
+    """Extract list item type from an annotation, including optional/union wrappers."""
+    for candidate in _unwrap_union_annotations(annotation):
+        if candidate in {None, type(None)}:
+            continue
+        origin = get_origin(candidate)
+        if origin is list:
+            args = get_args(candidate)
+            if args:
+                return args[0]
+            return str
+    return None
+
+
+def _build_list_description(param_name: str, list_item_type: Any) -> str:  # noqa: ANN401
+    """Build a type-specific description for list prompt inputs."""
+    if list_item_type is str:
+        return f"Enter comma-separated text values for {param_name} (e.g. alpha, beta, gamma)"
+    if list_item_type is int:
+        return f"Enter comma-separated integer values for {param_name} (e.g. 1, 2, 3)"
+    if _is_enum(list_item_type):
+        accepted_values = ", ".join(str(member.value) for member in list_item_type)
+        return (
+            f"Enter comma-separated enum values for {param_name}. "
+            f"Accepted values: [{accepted_values}]. You can also use enum member names."
+        )
+    item_type_name = _annotation_to_string(list_item_type)
+    return f"Enter comma-separated values for {param_name} ({item_type_name})"
 
 
 def _annotation_to_string(annotation: Any) -> str:  # noqa: ANN401
@@ -105,6 +175,41 @@ class TaskJsonBuilder:
         self.input_id_map: dict[tuple[str, str], str] = {}
         self.tasks: list[dict[str, Any]] = []
 
+    def _build_input_metadata(self, param: inspect.Parameter) -> tuple[str, dict[str, Any], str, Any]:
+        """Build VS Code input metadata for a function parameter."""
+        annotation = param.annotation
+        input_type: str = "promptString"
+        input_options: dict[str, Any] = {}
+        description: str = f"Enter value for {param.name} ({_annotation_to_string(annotation)})"
+        default_value: Any = "" if param.default == inspect.Parameter.empty else param.default
+
+        list_item_type = _extract_list_item_type(annotation)
+        if list_item_type is not None:
+            description = _build_list_description(param.name, list_item_type)
+            default_value = "" if param.default == inspect.Parameter.empty else serialize_list_default(param.default)
+            return input_type, input_options, description, default_value
+
+        enum_type = _extract_enum_type(annotation)
+        if enum_type is not None:
+            input_type = "pickString"
+            choices: list[str] = [e.value for e in enum_type]
+            input_options["options"] = choices
+            if param.default == inspect.Parameter.empty or param.default is None:
+                default_value = choices[0]
+            else:
+                default_value = param.default.value
+            return input_type, input_options, description, default_value
+
+        if _contains_bool(annotation):
+            input_type = "pickString"
+            input_options["options"] = ["True", "False"]
+            if param.default == inspect.Parameter.empty or param.default is None:
+                default_value = "False"
+            else:
+                default_value = str(param.default)
+
+        return input_type, input_options, description, default_value
+
     def _create_args_for_tool(self, tool: FunctionType) -> list[str]:
         """Create argument list and input entries for a given tool."""
         sig = inspect.signature(tool)
@@ -124,20 +229,7 @@ class TaskJsonBuilder:
                 raise ValueError(
                     msg,
                 )
-            input_type: str = "promptString"
-            input_options: dict[str, Any] = {}
-            description: str = f"Enter value for {param.name} ({_annotation_to_string(annotation)})"
-            default_value: Any = "" if param.default == inspect.Parameter.empty else param.default
-
-            if _is_enum(annotation):
-                input_type = "pickString"
-                choices: list[str] = [e.value for e in annotation]  # type: ignore[misc]
-                input_options["options"] = choices
-                default_value = choices[0] if param.default == inspect.Parameter.empty else param.default.value
-            elif _is_bool(annotation):
-                input_type = "pickString"
-                input_options["options"] = ["True", "False"]
-                default_value = "False" if param.default == inspect.Parameter.empty else str(param.default)
+            input_type, input_options, description, default_value = self._build_input_metadata(param)
 
             input_entry: dict[str, Any] = {
                 "id": input_id,

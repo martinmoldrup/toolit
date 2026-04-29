@@ -50,8 +50,8 @@ def _tool_with_enum_param_with_default(color: Color = Color.RED) -> None:  # noq
 
 
 def _tool_with_multiple_enum_params(
-    color: Color,  # noqa: ARG001
-    environment: Environment,  # noqa: ARG001
+    color: Color = Color.RED,  # noqa: ARG001
+    environment: Environment | None = None,  # noqa: ARG001
 ) -> None:
     """Tool with multiple enum parameters."""
 

@@ -54,6 +54,31 @@ def _is_bool(annotation: Any) -> bool:  # noqa: ANN401
     return annotation is bool
 
 
+def _unwrap_union_annotations(annotation: Any) -> list[Any]:  # noqa: ANN401
+    """Return union members for `X | Y` / `Union[X, Y]`, or the annotation itself."""
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    union_type = getattr(types, "UnionType", None)
+    if origin is Union or (union_type is not None and origin is union_type):
+        return list(args)
+    return [annotation]
+
+
+def _extract_enum_type(annotation: Any) -> type[enum.Enum] | None:  # noqa: ANN401
+    """Extract enum type from an annotation, including optional/union wrappers."""
+    for candidate in _unwrap_union_annotations(annotation):
+        if candidate in {None, type(None)}:
+            continue
+        if _is_enum(candidate):
+            return candidate
+    return None
+
+
+def _contains_bool(annotation: Any) -> bool:  # noqa: ANN401
+    """Check whether an annotation contains bool directly or via union/optional."""
+    return any(_is_bool(candidate) for candidate in _unwrap_union_annotations(annotation))
+
+
 def _annotation_to_string(annotation: Any) -> str:  # noqa: ANN401
     """Convert Python type annotations to readable strings."""
     result: str = ""
@@ -129,15 +154,22 @@ class TaskJsonBuilder:
             description: str = f"Enter value for {param.name} ({_annotation_to_string(annotation)})"
             default_value: Any = "" if param.default == inspect.Parameter.empty else param.default
 
-            if _is_enum(annotation):
+            enum_type = _extract_enum_type(annotation)
+            if enum_type is not None:
                 input_type = "pickString"
-                choices: list[str] = [e.value for e in annotation]  # type: ignore[misc]
+                choices: list[str] = [e.value for e in enum_type]
                 input_options["options"] = choices
-                default_value = choices[0] if param.default == inspect.Parameter.empty else param.default.value
-            elif _is_bool(annotation):
+                if param.default == inspect.Parameter.empty or param.default is None:
+                    default_value = choices[0]
+                else:
+                    default_value = param.default.value
+            elif _contains_bool(annotation):
                 input_type = "pickString"
                 input_options["options"] = ["True", "False"]
-                default_value = "False" if param.default == inspect.Parameter.empty else str(param.default)
+                if param.default == inspect.Parameter.empty or param.default is None:
+                    default_value = "False"
+                else:
+                    default_value = str(param.default)
 
             input_entry: dict[str, Any] = {
                 "id": input_id,

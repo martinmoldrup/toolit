@@ -54,6 +54,7 @@ def test_cli_main_registers_tools_and_runs_app(monkeypatch: pytest.MonkeyPatch) 
     def fake_app() -> None:
         called["app"] = True
 
+    monkeypatch.setattr(cli_module, "_registration_done", False)
     monkeypatch.setattr(cli_module, "register_all_tools_from_folder_and_plugin", fake_register)
     monkeypatch.setattr(cli_module, "app", fake_app)
     cli_module.main()

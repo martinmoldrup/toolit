@@ -81,7 +81,7 @@ def _coerce_list_items(raw_value: str, item_type: Any) -> list[Any]:  # noqa: AN
             (
                 token
                 for token in tokens
-                if not token or token in {"+", "-"} or not token.lstrip("+-").isdigit()
+                if token in {"+", "-"} or not token.lstrip("+-").isdigit()
             ),
             None,
         )

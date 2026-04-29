@@ -21,6 +21,7 @@ from typing import Any, Union, get_args, get_origin
 PATH: pathlib.Path = load_devtools_folder()
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
 
+
 def serialize_list_default(default_value: Any) -> str | None:  # noqa: ANN401
     """Serialize list defaults to comma-separated text using enum values when needed."""
     if default_value is None:

@@ -1,9 +1,28 @@
 """Tests for create_tasks_json type annotation handling."""
 
-import pytest
+import enum
 import inspect
-from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string  # noqa: PLC2701
 from typing import Any, Optional
+
+import pytest
+
+from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string  # noqa: PLC2701
+
+
+class Color(enum.Enum):
+    """Test enum for colors."""
+
+    RED = "red"
+    GREEN = "green"
+    BLUE = "blue"
+
+
+class Environment(str, enum.Enum):
+    """Test enum for environments."""
+
+    DEV = "development"
+    STAGING = "staging"
+    PROD = "production"
 
 
 def _tool_with_pep604_optional(input_dataset_name: str | None = None) -> None:
@@ -20,6 +39,21 @@ def _tool_without_type_hint(to_print) -> None:  # type: ignore[no-untyped-def]  
 
 def _tool_with_multiple_params_missing_hint(name, value: str) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
     """Tool where only the first parameter is missing a type hint."""
+
+
+def _tool_with_enum_param(color: Color) -> None:  # noqa: ARG001
+    """Tool with an enum parameter."""
+
+
+def _tool_with_enum_param_with_default(color: Color = Color.RED) -> None:  # noqa: ARG001
+    """Tool with an enum parameter that has a default value."""
+
+
+def _tool_with_multiple_enum_params(
+    color: Color,  # noqa: ARG001
+    environment: Environment,  # noqa: ARG001
+) -> None:
+    """Tool with multiple enum parameters."""
 
 
 def test_create_args_for_tool_handles_pep604_optional() -> None:
@@ -84,3 +118,49 @@ def test_create_args_for_tool_raises_on_first_missing_hint_in_mixed_params() -> 
 
     with pytest.raises(ValueError, match="Parameter 'name' in function '_tool_with_multiple_params_missing_hint'"):
         builder._create_args_for_tool(_tool_with_multiple_params_missing_hint)
+
+
+def test_create_args_for_tool_enum_creates_picklist_input() -> None:
+    """Ensure enum parameters create pickString input type in tasks.json."""
+    builder = TaskJsonBuilder()
+
+    args = builder._create_args_for_tool(_tool_with_enum_param)  # noqa: SLF001
+
+    assert args == ['"${input:_tool_with_enum_param_color}"']
+    assert builder.inputs[0]["type"] == "pickString"
+    assert builder.inputs[0]["options"] == ["red", "green", "blue"]
+
+
+def test_create_args_for_tool_enum_sets_default_to_first_choice() -> None:
+    """Ensure enum parameters default to the first enum value when no default provided."""
+    builder = TaskJsonBuilder()
+
+    args = builder._create_args_for_tool(_tool_with_enum_param)  # noqa: SLF001
+
+    assert builder.inputs[0]["default"] == "red"
+
+
+def test_create_args_for_tool_enum_respects_provided_default() -> None:
+    """Ensure enum parameters use the provided default value if specified."""
+    builder = TaskJsonBuilder()
+
+    args = builder._create_args_for_tool(_tool_with_enum_param_with_default)  # noqa: SLF001
+
+    assert builder.inputs[0]["default"] == Color.RED.value
+
+
+def test_create_args_for_tool_multiple_enum_params() -> None:
+    """Ensure multiple enum parameters are all correctly handled in tasks.json."""
+    builder = TaskJsonBuilder()
+
+    args = builder._create_args_for_tool(_tool_with_multiple_enum_params)  # noqa: SLF001
+
+    assert len(builder.inputs) == 2
+    # First input (color)
+    assert builder.inputs[0]["type"] == "pickString"
+    assert builder.inputs[0]["options"] == ["red", "green", "blue"]
+    assert builder.inputs[0]["default"] == "red"
+    # Second input (environment)
+    assert builder.inputs[1]["type"] == "pickString"
+    assert builder.inputs[1]["options"] == ["development", "staging", "production"]
+    assert builder.inputs[1]["default"] == "development"

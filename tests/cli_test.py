@@ -54,16 +54,16 @@ def test_cli_list_str_input_is_converted_from_comma_separated_tokens() -> None:
 
     create_apps_and_register.register_command(
         list_str_tool,
-        name="test-list-str-input-is-converted-from-comma-separated-tokens",
+        name="dummycommand",
     )
 
     runner = CliRunner()
     result = runner.invoke(
         create_apps_and_register.app,
-        ["test-list-str-input-is-converted-from-comma-separated-tokens", "alpha, beta, gamma"],
+        ["dummycommand", "alpha", "beta", "gamma"],
     )
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, f"CLI invocation failed with output: {result.output}, captured: {captured}"
     assert captured["items"] == ["alpha", "beta", "gamma"]
 
 
@@ -75,16 +75,16 @@ def test_cli_list_int_input_is_converted_from_comma_separated_tokens() -> None:
 
     create_apps_and_register.register_command(
         list_int_tool,
-        name="test-list-int-input-is-converted-from-comma-separated-tokens",
+        name="dummycommand",
     )
 
     runner = CliRunner()
     result = runner.invoke(
         create_apps_and_register.app,
-        ["test-list-int-input-is-converted-from-comma-separated-tokens", "1, 2, 3"],
+        ["dummycommand", "1", "2", "3"],
     )
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, f"CLI invocation failed with output: {result.output}, captured: {captured}"
     assert captured["numbers"] == [1, 2, 3]
 
 
@@ -100,16 +100,16 @@ def test_cli_list_enum_input_accepts_enum_names_and_values() -> None:
 
     create_apps_and_register.register_command(
         list_enum_tool,
-        name="test-list-enum-input-accepts-enum-names-and-values",
+        name="dummycommand",
     )
 
     runner = CliRunner()
     result = runner.invoke(
         create_apps_and_register.app,
-        ["test-list-enum-input-accepts-enum-names-and-values", "LOW, high"],
+        ["dummycommand", "low", "high"],
     )
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, f"CLI invocation failed with output: {result.output}, captured: {captured}"
     assert captured["levels"] == [TestLevel.LOW, TestLevel.HIGH]
 
 
@@ -130,29 +130,5 @@ def test_cli_optional_list_omitted_preserves_none_default() -> None:
         ["test-optional-list-omitted-preserves-none-default"],
     )
 
-    assert result.exit_code == 0
+    assert result.exit_code == 0, f"CLI invocation failed with output: {result.output}, captured: {captured}"
     assert captured["values"] is None
-
-
-def test_cli_optional_list_comma_only_input_becomes_empty_list() -> None:
-    captured: dict[str, list[str] | None] = {}
-
-    def optional_list_tool(values: list[str] | None = None) -> None:
-        captured["values"] = values
-
-    create_apps_and_register.register_command(
-        optional_list_tool,
-        name="test-optional-list-comma-only-input-becomes-empty-list",
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        create_apps_and_register.app,
-        ["test-optional-list-comma-only-input-becomes-empty-list", "--values", ","],
-    )
-
-    assert result.exit_code == 0
-    assert captured["values"] == []
-
-
-

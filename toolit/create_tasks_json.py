@@ -15,12 +15,25 @@ from toolit.auto_loader import (
 )
 from toolit.config import load_devtools_folder
 from toolit.constants import ToolitTypesEnum
-from toolit.list_serialization import serialize_list_default
 from types import FunctionType
 from typing import Any, Union, get_args, get_origin
 
 PATH: pathlib.Path = load_devtools_folder()
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
+
+def serialize_list_default(default_value: Any) -> str | None:  # noqa: ANN401
+    """Serialize list defaults to comma-separated text using enum values when needed."""
+    if default_value is None:
+        return None
+    if isinstance(default_value, list):
+        rendered_items: list[str] = []
+        for item in default_value:
+            if isinstance(item, enum.Enum):
+                rendered_items.append(str(item.value))
+            else:
+                rendered_items.append(str(item))
+        return ", ".join(rendered_items)
+    return str(default_value)
 
 
 def create_vscode_tasks_json() -> None:

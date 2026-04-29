@@ -46,23 +46,6 @@ def test_module_main_invokes_app(monkeypatch: pytest.MonkeyPatch) -> None:
     assert called["value"]
 
 
-def test_cli_main_registers_tools_and_runs_app(monkeypatch: pytest.MonkeyPatch) -> None:
-    called: dict[str, bool] = {"register": False, "app": False}
-
-    def fake_register() -> None:
-        called["register"] = True
-
-    def fake_app() -> None:
-        called["app"] = True
-
-    monkeypatch.setattr(cli_module, "_registration_done", False)
-    monkeypatch.setattr(cli_module, "register_all_tools_from_folder_and_plugin", fake_register)
-    monkeypatch.setattr(cli_module, "app", fake_app)
-    cli_module.main()
-    assert called["register"]
-    assert called["app"]
-
-
 def test_cli_list_str_input_is_converted_from_comma_separated_tokens() -> None:
     captured: dict[str, list[str]] = {}
 

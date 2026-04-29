@@ -6,10 +6,10 @@ import enum
 from typing import Any
 
 
-def serialize_list_default(default_value: Any) -> str:  # noqa: ANN401
+def serialize_list_default(default_value: Any) -> str | None:  # noqa: ANN401
     """Serialize list defaults to comma-separated text using enum values when needed."""
     if default_value is None:
-        return ""
+        return None
     if isinstance(default_value, list):
         rendered_items: list[str] = []
         for item in default_value:

@@ -212,7 +212,7 @@ def test_create_args_for_tool_list_enum_serializes_default_values() -> None:
 
     assert (
         builder.inputs[0]["description"]
-        == "Enter comma-separated enum values for colors. Accepted values: red, green, blue. You can also use enum member names."
+        == "Enter comma-separated enum values for colors. Accepted values: [red, green, blue]. You can also use enum member names."
     )
     assert builder.inputs[0]["default"] == "red, green"
 

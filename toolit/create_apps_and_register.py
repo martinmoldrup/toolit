@@ -7,16 +7,18 @@ import typer
 import types
 import inspect
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
 from toolit.list_serialization import serialize_list_default
+from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server.fastmcp import FastMCP  # type: ignore[import]
+
     _has_mcp: bool = True
 else:
     # Make MCP optional
     try:
         from mcp.server.fastmcp import FastMCP
+
         _has_mcp = True
     except ImportError:
         FastMCP: Any = None  # type: ignore[no-redef]
@@ -75,14 +77,18 @@ def _coerce_list_items(raw_value: str, item_type: Any) -> list[Any]:  # noqa: AN
     """Convert a comma-separated string into a typed list for list-annotated parameters."""
     tokens = [token.strip() for token in raw_value.split(",") if token.strip()]
     if item_type is int:
-        converted_ints: list[int] = []
-        for token in tokens:
-            try:
-                converted_ints.append(int(token))
-            except ValueError as exc:
-                msg = f"Invalid integer value '{token}' in list input '{raw_value}'."
-                raise typer.BadParameter(msg) from exc
-        return converted_ints
+        invalid_token = next(
+            (
+                token
+                for token in tokens
+                if not token or token in {"+", "-"} or not token.lstrip("+-").isdigit()
+            ),
+            None,
+        )
+        if invalid_token is not None:
+            msg = f"Invalid integer value '{invalid_token}' in list input '{raw_value}'."
+            raise typer.BadParameter(msg)
+        return [int(token) for token in tokens]
     if isinstance(item_type, type) and issubclass(item_type, enum.Enum):
         return [_coerce_enum_item(item_type, token) for token in tokens]
     return tokens
@@ -112,7 +118,7 @@ def _build_cli_command(command_func: Callable[..., Any]) -> Callable[..., Any]:
 
     cli_signature = signature.replace(parameters=cli_parameters)
 
-    def _command_wrapper(*args: Any, **kwargs: Any) -> Any:
+    def _command_wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         bound = cli_signature.bind(*args, **kwargs)
         converted_arguments: dict[str, Any] = dict(bound.arguments)
         for name, item_type in list_item_types.items():

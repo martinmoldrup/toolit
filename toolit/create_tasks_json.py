@@ -58,7 +58,7 @@ def _is_bool(annotation: Any) -> bool:  # noqa: ANN401
 
 def _annotation_to_string(annotation: Any) -> str:  # noqa: ANN401
     """Convert Python type annotations to readable strings."""
-    result: str
+    result: str = ""
 
     if annotation == inspect.Parameter.empty:
         result = "str"
@@ -118,6 +118,11 @@ class TaskJsonBuilder:
             self.input_id_map[tool.__name__, param.name] = input_id
 
             annotation = param.annotation
+            if annotation is inspect.Parameter.empty:
+                raise ValueError(
+                    f"Parameter '{param.name}' in function '{tool.__name__}' is missing a type annotation. "
+                    f"Please add a type hint, e.g.: def {tool.__name__}({param.name}: str) -> None"
+                )
             input_type: str = "promptString"
             input_options: dict[str, Any] = {}
             description: str = f"Enter value for {param.name} ({_annotation_to_string(annotation)})"
@@ -182,7 +187,7 @@ class TaskJsonBuilder:
         elif tool_type in {ToolitTypesEnum.SEQUENTIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP}:
             self._create_task_group_entry(tool, tool_type)
 
-    def create_tasks_json(self) -> dict:
+    def create_tasks_json(self) -> dict[str, Any]:
         """Create the final tasks.json structure."""
         tasks_json: dict[str, Any] = {
             "version": "2.0.0",

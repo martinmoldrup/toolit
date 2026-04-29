@@ -56,6 +56,22 @@ def _tool_with_multiple_enum_params(
     """Tool with multiple enum parameters."""
 
 
+def _tool_with_list_str_param(items: list[str]) -> None:  # noqa: ARG001
+    """Tool with a list[str] parameter."""
+
+
+def _tool_with_list_int_param(numbers: list[int] = [1, 2, 3]) -> None:  # noqa: B006, ARG001
+    """Tool with a list[int] parameter and list default."""
+
+
+def _tool_with_list_enum_param(colors: list[Color] = [Color.RED, Color.GREEN]) -> None:  # noqa: B006, ARG001
+    """Tool with a list[Enum] parameter and list default."""
+
+
+def _tool_with_optional_list_param(values: list[str] | None = None) -> None:  # noqa: ARG001
+    """Tool with an optional list parameter."""
+
+
 def test_create_args_for_tool_handles_pep604_optional() -> None:
     """Ensure str | None annotations do not crash and are rendered in descriptions."""
     builder = TaskJsonBuilder()
@@ -164,3 +180,47 @@ def test_create_args_for_tool_multiple_enum_params() -> None:
     assert builder.inputs[1]["type"] == "pickString"
     assert builder.inputs[1]["options"] == ["development", "staging", "production"]
     assert builder.inputs[1]["default"] == "development"
+
+
+def test_create_args_for_tool_list_str_uses_promptstring_and_guidance() -> None:
+    """Ensure list[str] parameters use promptString with comma-separated guidance."""
+    builder = TaskJsonBuilder()
+
+    args = builder._create_args_for_tool(_tool_with_list_str_param)  # noqa: SLF001
+
+    assert args == ['"${input:_tool_with_list_str_param_items}"']
+    assert builder.inputs[0]["type"] == "promptString"
+    assert builder.inputs[0]["description"] == "Enter comma-separated text values for items (e.g. alpha, beta, gamma)"
+    assert builder.inputs[0]["default"] == ""
+
+
+def test_create_args_for_tool_list_int_serializes_default_values() -> None:
+    """Ensure list[int] defaults are serialized to comma-separated text."""
+    builder = TaskJsonBuilder()
+
+    builder._create_args_for_tool(_tool_with_list_int_param)  # noqa: SLF001
+
+    assert builder.inputs[0]["description"] == "Enter comma-separated integer values for numbers (e.g. 1, 2, 3)"
+    assert builder.inputs[0]["default"] == "1, 2, 3"
+
+
+def test_create_args_for_tool_list_enum_serializes_default_values() -> None:
+    """Ensure list[Enum] defaults are serialized using enum values."""
+    builder = TaskJsonBuilder()
+
+    builder._create_args_for_tool(_tool_with_list_enum_param)  # noqa: SLF001
+
+    assert (
+        builder.inputs[0]["description"]
+        == "Enter comma-separated enum values for colors. Accepted values: red, green, blue. You can also use enum member names."
+    )
+    assert builder.inputs[0]["default"] == "red, green"
+
+
+def test_create_args_for_tool_optional_list_keeps_none_default() -> None:
+    """Ensure optional list parameters preserve None as default."""
+    builder = TaskJsonBuilder()
+
+    builder._create_args_for_tool(_tool_with_optional_list_param)  # noqa: SLF001
+
+    assert builder.inputs[0]["default"] is None

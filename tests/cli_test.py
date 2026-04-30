@@ -4,6 +4,7 @@ import toolit.cli as cli_module
 import enum
 import pytest
 from typer.testing import CliRunner
+from toolit import clitool
 
 
 def test_cli_run_with_no_tools() -> None:
@@ -132,3 +133,76 @@ def test_cli_optional_list_omitted_preserves_none_default() -> None:
 
     assert result.exit_code == 0, f"CLI invocation failed with output: {result.output}, captured: {captured}"
     assert captured["values"] is None
+
+
+def test_clitool_runtime_executes_returned_shell_command(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, str] = {}
+
+    class DummyCompletedProcess:
+        """Completed-process stand-in with return code for subprocess mocks."""
+
+        def __init__(self, returncode: int) -> None:
+            self.returncode = returncode
+
+    def fake_run(command: str, shell: bool, check: bool) -> DummyCompletedProcess:  # noqa: FBT001
+        captured["command"] = command
+        captured["shell"] = str(shell)
+        captured["check"] = str(check)
+        return DummyCompletedProcess(returncode=0)
+
+    monkeypatch.setattr(create_apps_and_register.subprocess, "run", fake_run)
+
+    @clitool
+    def run_echo(target: str) -> str:
+        return f"echo {target}"
+
+    create_apps_and_register.register_command(run_echo, name="test-clitool-runtime-executes-returned-shell-command")
+    runner = CliRunner()
+    result = runner.invoke(
+        create_apps_and_register.app,
+        ["test-clitool-runtime-executes-returned-shell-command", "hello"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert captured["command"] == "echo hello"
+    assert captured["shell"] == "True"
+    assert captured["check"] == "False"
+
+
+def test_clitool_runtime_requires_string_return_type() -> None:
+    @clitool
+    def returns_wrong_type() -> int:  # type: ignore[return-value]
+        return 42
+
+    create_apps_and_register.register_command(returns_wrong_type, name="test-clitool-runtime-requires-string-return-type")
+    runner = CliRunner()
+    result = runner.invoke(create_apps_and_register.app, ["test-clitool-runtime-requires-string-return-type"])
+
+    assert result.exit_code == 1
+    assert "must return a string command" in result.output
+
+
+def test_clitool_runtime_propagates_subprocess_exit_code(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DummyCompletedProcess:
+        """Completed-process stand-in with return code for subprocess mocks."""
+
+        def __init__(self, returncode: int) -> None:
+            self.returncode = returncode
+
+    def fake_run(command: str, shell: bool, check: bool) -> DummyCompletedProcess:  # noqa: ARG001, FBT001
+        return DummyCompletedProcess(returncode=9)
+
+    monkeypatch.setattr(create_apps_and_register.subprocess, "run", fake_run)
+
+    @clitool
+    def returns_failing_command() -> str:
+        return "exit 9"
+
+    create_apps_and_register.register_command(
+        returns_failing_command,
+        name="test-clitool-runtime-propagates-subprocess-exit-code",
+    )
+    runner = CliRunner()
+    result = runner.invoke(create_apps_and_register.app, ["test-clitool-runtime-propagates-subprocess-exit-code"])
+
+    assert result.exit_code == 9

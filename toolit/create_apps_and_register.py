@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import inspect
+import subprocess
+from functools import wraps
 import typer
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+
+from toolit.constants import MARKER_TOOL, ToolitTypesEnum
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -38,6 +43,41 @@ def register_command(
     if not callable(command_func):
         msg = f"Command function {command_func} is not callable."
         raise TypeError(msg)
-    app.command(name=name, rich_help_panel=rich_help_panel)(command_func)
-    if mcp is not None:
+
+    command_to_register = command_func
+    if getattr(command_func, MARKER_TOOL, None) == ToolitTypesEnum.CLITOOL:
+        command_to_register = _create_clitool_runtime_wrapper(command_func)
+
+    app.command(name=name, rich_help_panel=rich_help_panel)(command_to_register)
+
+    if mcp is not None and getattr(command_func, MARKER_TOOL, None) != ToolitTypesEnum.CLITOOL:
         mcp.tool(name)(command_func)
+
+
+def _create_clitool_runtime_wrapper(command_func: Callable[..., Any]) -> Callable[..., None]:
+    """Wrap a clitool function so its returned command string runs in a shell."""
+
+    @wraps(command_func)
+    def _wrapped(*args: Any, **kwargs: Any) -> None:
+        command = command_func(*args, **kwargs)
+        if not isinstance(command, str):
+            typer.secho(
+                f"Error: clitool '{command_func.__name__}' must return a string command, got {type(command).__name__}.",
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+
+        command_to_run: str = command.strip()
+        if not command_to_run:
+            typer.secho(
+                f"Error: clitool '{command_func.__name__}' returned an empty command.",
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+
+        result = subprocess.run(command_to_run, shell=True, check=False)  # noqa: S602
+        if result.returncode != 0:
+            raise typer.Exit(code=result.returncode)
+
+    _wrapped.__signature__ = inspect.signature(command_func)
+    return _wrapped

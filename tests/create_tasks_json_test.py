@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 import pytest
 
+from toolit import clitool
 from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string  # noqa: PLC2701
 
 
@@ -224,3 +225,19 @@ def test_create_args_for_tool_optional_list_keeps_none_default() -> None:
     builder._create_args_for_tool(_tool_with_optional_list_param)  # noqa: SLF001
 
     assert builder.inputs[0]["default"] is None
+
+
+def test_process_tool_clitool_creates_task_and_inputs() -> None:
+    """Ensure clitool functions are processed into task and input entries."""
+
+    @clitool
+    def run_script(name: str) -> str:
+        return f"echo {name}"
+
+    builder = TaskJsonBuilder()
+    builder.process_tool(run_script)
+
+    assert len(builder.tasks) == 1
+    assert len(builder.inputs) == 1
+    assert builder.tasks[0]["command"].endswith('toolit run-script "${input:run_script_name}"')
+    assert builder.inputs[0]["id"] == "run_script_name"

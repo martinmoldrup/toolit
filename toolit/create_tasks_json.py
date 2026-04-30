@@ -2,11 +2,13 @@
 
 import enum
 import json
+import shutil
 import typer
 import types
 import inspect
 import pathlib
 from toolit.auto_loader import (
+    clitool_strategy,
     get_items_from_folder,
     get_plugin_tools,
     get_toolit_type,
@@ -42,7 +44,9 @@ def create_vscode_tasks_json() -> None:
     typer.echo(f"Creating tasks.json at {output_file_path}")
     if PATH.exists() and PATH.is_dir():
         tools: list[FunctionType] = get_items_from_folder(PATH, tool_strategy)
+        clitools: list[FunctionType] = get_items_from_folder(PATH, clitool_strategy)
         tool_groups: list[FunctionType] = get_items_from_folder(PATH, tool_group_strategy)
+        tools.extend(clitools)
         tools.extend(tool_groups)
     else:
         typer.echo(f"The devtools folder does not exist or is not a directory: {PATH.absolute().as_posix()}")
@@ -175,6 +179,11 @@ class TaskJsonBuilder:
         self.input_id_map: dict[tuple[str, str], str] = {}
         self.tasks: list[dict[str, Any]] = []
 
+    @staticmethod
+    def _build_command_prefix() -> str:
+        """Build command prefix for task commands based on uv availability."""
+        return "uv run --no-sync " if shutil.which("uv") else ""
+
     def _build_input_metadata(self, param: inspect.Parameter) -> tuple[str, dict[str, Any], str, Any]:
         """Build VS Code input metadata for a function parameter."""
         annotation = param.annotation
@@ -246,10 +255,11 @@ class TaskJsonBuilder:
         """Create a task entry for a given tool."""
         name_as_typer_command: str = _create_typer_command_name(tool)
         display_name: str = _create_display_name(tool)
+        command_prefix: str = self._build_command_prefix()
         task: dict[str, Any] = {
             "label": display_name,
             "type": "shell",
-            "command": f"toolit {name_as_typer_command}" + (f" {' '.join(args)}" if args else ""),
+            "command": f"{command_prefix}toolit {name_as_typer_command}" + (f" {' '.join(args)}" if args else ""),
             "problemMatcher": [],
         }
         if tool.__doc__:
@@ -274,7 +284,7 @@ class TaskJsonBuilder:
     def process_tool(self, tool: FunctionType) -> None:
         """Process a single tool to create its task entry and inputs."""
         tool_type = get_toolit_type(tool)
-        if tool_type == ToolitTypesEnum.TOOL:
+        if tool_type in {ToolitTypesEnum.TOOL, ToolitTypesEnum.CLITOOL}:
             args = self._create_args_for_tool(tool)
             self._create_task_entry(tool, args)
         elif tool_type in {ToolitTypesEnum.SEQUENTIAL_GROUP, ToolitTypesEnum.PARALLEL_GROUP}:

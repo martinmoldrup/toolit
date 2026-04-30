@@ -13,6 +13,12 @@ def tool(func: T) -> T:
     return func
 
 
+def clitool(func: T) -> T:
+    """Decorate function as a CLI tool that returns a shell command string."""
+    setattr(func, MARKER_TOOL, ToolitTypesEnum.CLITOOL)
+    return func
+
+
 def sequential_group_of_tools(func: T) -> T:
     """Decorate a function that returns a list of callable tools."""
     setattr(func, MARKER_TOOL, ToolitTypesEnum.SEQUENTIAL_GROUP)

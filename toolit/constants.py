@@ -23,5 +23,6 @@ class ToolitTypesEnum(enum.Enum):
     """Enum for the different types of toolit tools."""
 
     TOOL = "tool"
+    CLITOOL = "clitool"
     SEQUENTIAL_GROUP = "sequential_group"
     PARALLEL_GROUP = "parallel_group"

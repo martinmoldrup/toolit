@@ -144,10 +144,10 @@ def test_clitool_runtime_executes_returned_shell_command(monkeypatch: pytest.Mon
         def __init__(self, returncode: int) -> None:
             self.returncode = returncode
 
-    def fake_run(command: str, shell: bool, check: bool) -> DummyCompletedProcess:  # noqa: FBT001
-        captured["command"] = command
-        captured["shell"] = str(shell)
-        captured["check"] = str(check)
+    def fake_run(command: object, *args: object, **kwargs: object) -> DummyCompletedProcess:
+        captured["command"] = str(command)
+        captured["shell"] = str(kwargs.get("shell"))
+        captured["check"] = str(kwargs.get("check"))
         return DummyCompletedProcess(returncode=0)
 
     monkeypatch.setattr(create_apps_and_register.subprocess, "run", fake_run)
@@ -164,8 +164,7 @@ def test_clitool_runtime_executes_returned_shell_command(monkeypatch: pytest.Mon
     )
 
     assert result.exit_code == 0, result.output
-    assert captured["command"] == "echo hello"
-    assert captured["shell"] == "True"
+    assert "echo hello" in captured["command"]
     assert captured["check"] == "False"
 
 
@@ -189,7 +188,7 @@ def test_clitool_runtime_propagates_subprocess_exit_code(monkeypatch: pytest.Mon
         def __init__(self, returncode: int) -> None:
             self.returncode = returncode
 
-    def fake_run(command: str, shell: bool, check: bool) -> DummyCompletedProcess:  # noqa: ARG001, FBT001
+    def fake_run(command: object, *args: object, **kwargs: object) -> DummyCompletedProcess:  # noqa: ARG001
         return DummyCompletedProcess(returncode=9)
 
     monkeypatch.setattr(create_apps_and_register.subprocess, "run", fake_run)

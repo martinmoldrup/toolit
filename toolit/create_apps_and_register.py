@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 import subprocess
 from functools import wraps
 import typer
@@ -75,7 +76,11 @@ def _create_clitool_runtime_wrapper(command_func: Callable[..., Any]) -> Callabl
             )
             raise typer.Exit(code=1)
 
-        result = subprocess.run(command_to_run, shell=True, check=False)  # noqa: S602
+        if os.name == "nt":
+            # Use PowerShell on Windows so command quoting matches interactive pwsh usage.
+            result = subprocess.run(["pwsh", "-NoProfile", "-Command", command_to_run], check=False)
+        else:
+            result = subprocess.run(command_to_run, shell=True, check=False)  # noqa: S602
         if result.returncode != 0:
             raise typer.Exit(code=result.returncode)
 

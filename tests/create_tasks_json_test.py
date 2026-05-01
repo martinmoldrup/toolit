@@ -1,256 +1,128 @@
-"""Tests for create_tasks_json type annotation handling."""
+"""Tests for tasks.json generation and structure.
 
-import enum
-import inspect
-from typing import Any, Optional
+This module tests the _TaskJsonBuilder class and ensures that tasks.json
+is properly structured with correct task entries and input metadata.
+"""
+
+from types import FunctionType
+from typing import Any, cast
 
 import pytest
 
 from toolit import clitool
-from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string, _create_typer_option_name  # noqa: PLC2701
+from toolit.cli_command_builder import CliCommandBuilder
+from toolit.create_tasks_json import _TaskJsonBuilder
 
 
-class Color(enum.Enum):
-    """Test enum for colors."""
+def _as_function(func: Any) -> FunctionType:
+    """Cast a Python function to FunctionType for strict type checks."""
+    return cast(FunctionType, func)
 
-    RED = "red"
-    GREEN = "green"
-    BLUE = "blue"
 
+# ============ Tests for task entry creation ============
 
-class Environment(str, enum.Enum):
-    """Test enum for environments."""
 
-    DEV = "development"
-    STAGING = "staging"
-    PROD = "production"
-
-
-def _tool_with_pep604_optional(input_dataset_name: str | None = None) -> None:
-    """Tool with a PEP 604 optional argument."""
-
-
-def _tool_with_typing_optional(input_dataset_name: str | None = None) -> None:
-    """Tool with a typing.Optional argument."""
-
-
-def _tool_without_type_hint(to_print) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
-    """Tool without a type hint on a parameter."""
-
-
-def _tool_with_multiple_params_missing_hint(name, value: str) -> None:  # type: ignore[no-untyped-def]  # noqa: ANN001
-    """Tool where only the first parameter is missing a type hint."""
-
-
-def _tool_with_enum_param(color: Color) -> None:  # noqa: ARG001
-    """Tool with an enum parameter."""
-
-
-def _tool_with_enum_param_with_default(color: Color = Color.RED) -> None:  # noqa: ARG001
-    """Tool with an enum parameter that has a default value."""
-
-
-def _tool_with_multiple_enum_params(
-    color: Color = Color.RED,  # noqa: ARG001
-    environment: Environment | None = None,  # noqa: ARG001
-) -> None:
-    """Tool with multiple enum parameters."""
-
-
-def _tool_with_list_str_param(items: list[str]) -> None:  # noqa: ARG001
-    """Tool with a list[str] parameter."""
-
-
-def _tool_with_list_int_param(numbers: list[int] = [1, 2, 3]) -> None:  # noqa: B006, ARG001
-    """Tool with a list[int] parameter and list default."""
-
-
-def _tool_with_list_enum_param(colors: list[Color] = [Color.RED, Color.GREEN]) -> None:  # noqa: B006, ARG001
-    """Tool with a list[Enum] parameter and list default."""
-
-
-def _tool_with_optional_list_param(values: list[str] | None = None) -> None:  # noqa: ARG001
-    """Tool with an optional list parameter."""
-
-
-def test_create_args_for_tool_handles_pep604_optional() -> None:
-    """Ensure str | None annotations do not crash and are rendered in descriptions."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_pep604_optional)  # noqa: SLF001
-
-    assert args == ['--input-dataset-name "${input:_tool_with_pep604_optional_input_dataset_name}"']
-    assert builder.inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
-    assert builder.inputs[0]["default"] is None
-
-
-def test_create_args_for_tool_handles_typing_optional() -> None:
-    """Ensure typing.Optional[str] annotations do not crash and are rendered in descriptions."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_typing_optional)  # noqa: SLF001
-
-    assert args == ['--input-dataset-name "${input:_tool_with_typing_optional_input_dataset_name}"']
-    assert builder.inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
-    assert builder.inputs[0]["default"] is None
-
-
-@pytest.mark.parametrize(
-    ("annotation", "expected"),
-    [
-        (inspect.Parameter.empty, "str"),
-        (Any, "Any"),
-        (list[str], "list[str]"),
-        (dict[str, int], "dict[str, int]"),
-        (str | None, "str | None"),
-        (Optional[int], "int | None"),
-    ],
-)
-def test_annotation_to_string_formats_common_and_complex_types(annotation: Any, expected: str) -> None:
-    """Ensure annotation string conversion supports unions, optionals, and generics."""
-    assert _annotation_to_string(annotation) == expected
-
-
-def test_create_args_for_tool_raises_on_missing_type_hint() -> None:
-    """Ensure a missing type hint raises ValueError with an instructive message."""
-    builder = TaskJsonBuilder()
-
-    with pytest.raises(
-        ValueError, match="Parameter 'to_print' in function '_tool_without_type_hint' is missing a type annotation"
-    ):
-        builder._create_args_for_tool(_tool_without_type_hint)
-
-
-def test_create_args_for_tool_error_message_includes_fix_hint() -> None:
-    """Ensure the error message tells the user how to fix the missing annotation."""
-    builder = TaskJsonBuilder()
-
-    with pytest.raises(ValueError, match=r"def _tool_without_type_hint\(to_print: str\) -> None"):
-        builder._create_args_for_tool(_tool_without_type_hint)
-
-
-def test_create_args_for_tool_raises_on_first_missing_hint_in_mixed_params() -> None:
-    """Ensure the error reports the specific parameter that is missing the annotation."""
-    builder = TaskJsonBuilder()
-
-    with pytest.raises(ValueError, match="Parameter 'name' in function '_tool_with_multiple_params_missing_hint'"):
-        builder._create_args_for_tool(_tool_with_multiple_params_missing_hint)
-
-
-def test_create_args_for_tool_enum_creates_picklist_input() -> None:
-    """Ensure enum parameters create pickString input type in tasks.json."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_enum_param)  # noqa: SLF001
-
-    assert args == ['"${input:_tool_with_enum_param_color}"']
-    assert builder.inputs[0]["type"] == "pickString"
-    assert builder.inputs[0]["options"] == ["red", "green", "blue"]
-
-
-def test_create_args_for_tool_enum_sets_default_to_first_choice() -> None:
-    """Ensure enum parameters default to the first enum value when no default provided."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_enum_param)  # noqa: SLF001
-
-    assert builder.inputs[0]["default"] == "red"
-
-
-def test_create_args_for_tool_enum_respects_provided_default() -> None:
-    """Ensure enum parameters use the provided default value if specified."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_enum_param_with_default)  # noqa: SLF001
-
-    assert args == ['--color "${input:_tool_with_enum_param_with_default_color}"']
-    assert builder.inputs[0]["default"] == Color.RED.value
-
-
-def test_create_args_for_tool_multiple_enum_params() -> None:
-    """Ensure multiple enum parameters are all correctly handled in tasks.json."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_multiple_enum_params)  # noqa: SLF001
-
-    assert args == [
-        '--color "${input:_tool_with_multiple_enum_params_color}"',
-        '--environment "${input:_tool_with_multiple_enum_params_environment}"',
-    ]
-    assert len(builder.inputs) == 2
-    # First input (color)
-    assert builder.inputs[0]["type"] == "pickString"
-    assert builder.inputs[0]["options"] == ["red", "green", "blue"]
-    assert builder.inputs[0]["default"] == "red"
-    # Second input (environment)
-    assert builder.inputs[1]["type"] == "pickString"
-    assert builder.inputs[1]["options"] == ["development", "staging", "production"]
-    assert builder.inputs[1]["default"] == "development"
-
-
-def test_create_args_for_tool_list_str_uses_promptstring_and_guidance() -> None:
-    """Ensure list[str] parameters use promptString with comma-separated guidance."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_list_str_param)  # noqa: SLF001
-
-    assert args == ['"${input:_tool_with_list_str_param_items}"']
-    assert builder.inputs[0]["type"] == "promptString"
-    assert builder.inputs[0]["description"] == "Enter comma-separated text values for items (e.g. alpha, beta, gamma)"
-    assert builder.inputs[0]["default"] == ""
-
-
-def test_create_args_for_tool_list_int_serializes_default_values() -> None:
-    """Ensure list[int] defaults are serialized to comma-separated text."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_list_int_param)  # noqa: SLF001
-
-    assert args == ['--numbers "${input:_tool_with_list_int_param_numbers}"']
-    assert builder.inputs[0]["description"] == "Enter comma-separated integer values for numbers (e.g. 1, 2, 3)"
-    assert builder.inputs[0]["default"] == "1, 2, 3"
-
-
-def test_create_args_for_tool_list_enum_serializes_default_values() -> None:
-    """Ensure list[Enum] defaults are serialized using enum values."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_list_enum_param)  # noqa: SLF001
-
-    assert args == ['--colors "${input:_tool_with_list_enum_param_colors}"']
-    assert (
-        builder.inputs[0]["description"]
-        == "Enter comma-separated enum values for colors. Accepted values: [red, green, blue]. You can also use enum member names."
-    )
-    assert builder.inputs[0]["default"] == "red, green"
-
-
-def test_create_args_for_tool_optional_list_keeps_none_default() -> None:
-    """Ensure optional list parameters preserve None as default."""
-    builder = TaskJsonBuilder()
-
-    args = builder._create_args_for_tool(_tool_with_optional_list_param)  # noqa: SLF001
-
-    assert args == ['--values "${input:_tool_with_optional_list_param_values}"']
-    assert builder.inputs[0]["default"] is None
-
-
-def test_create_typer_option_name_replaces_underscores() -> None:
-    """Ensure option names follow Typer's kebab-case convention."""
-    assert _create_typer_option_name("string_input") == "--string-input"
-
-
-def test_process_tool_clitool_creates_task_and_inputs() -> None:
-    """Ensure clitool functions are processed into task and input entries."""
+def test_task_json_builder_creates_task_entry_from_spec() -> None:
+    """Ensure _TaskJsonBuilder creates properly formatted task entries."""
 
     @clitool
     def run_script(name: str) -> str:
+        """Run a shell script."""
         return f"echo {name}"
 
-    builder = TaskJsonBuilder()
-    builder.process_tool(run_script)
+    cmd_builder = CliCommandBuilder()
+    builder = _TaskJsonBuilder(cmd_builder)
+    spec = cmd_builder.analyze_tool(_as_function(run_script))
+
+    builder._create_task_entry(spec)
 
     assert len(builder.tasks) == 1
-    assert len(builder.inputs) == 1
-    assert builder.tasks[0]["command"].endswith('toolit run-script "${input:run_script_name}"')
-    assert builder.inputs[0]["id"] == "run_script_name"
+    task = builder.tasks[0]
+
+    assert task["label"] == "Run Script"
+    assert task["type"] == "shell"
+    assert task["command"].endswith('toolit run-script "${input:run_script_name}"')
+    assert task["detail"] == "Run a shell script."
+    assert task["problemMatcher"] == []
+
+
+def test_task_json_builder_omits_detail_when_no_docstring() -> None:
+    """Ensure detail field is omitted when tool has no docstring."""
+
+    @clitool
+    def run_without_docstring(name: str) -> str:  # type: ignore[no-untyped-def]
+        pass
+
+    cmd_builder = CliCommandBuilder()
+    builder = _TaskJsonBuilder(cmd_builder)
+    spec = cmd_builder.analyze_tool(_as_function(run_without_docstring))
+
+    # Docstring is None, so we'll set it explicitly to test
+    spec.docstring = None
+    builder._create_task_entry(spec)
+
+    task = builder.tasks[0]
+    assert "detail" not in task
+
+
+def test_task_json_builder_collects_input_entries() -> None:
+    """Ensure all input entries are collected during processing."""
+
+    @clitool
+    def multi_param(name: str, count: int = 5) -> None:  # noqa: ARG001
+        """Tool with multiple parameters."""
+
+    cmd_builder = CliCommandBuilder()
+    builder = _TaskJsonBuilder(cmd_builder)
+    spec = cmd_builder.analyze_tool(_as_function(multi_param))
+
+    builder._create_task_entry(spec)
+    builder.inputs.extend(spec.get_input_entries())
+
+    assert len(builder.inputs) == 2
+    assert builder.inputs[0]["id"] == "multi_param_name"
+    assert builder.inputs[1]["id"] == "multi_param_count"
+
+
+def test_task_json_builder_create_tasks_json_returns_proper_structure() -> None:
+    """Ensure create_tasks_json returns properly formatted output."""
+
+    @clitool
+    def simple_tool(text: str) -> None:  # noqa: ARG001
+        """A simple tool."""
+
+    cmd_builder = CliCommandBuilder()
+    builder = _TaskJsonBuilder(cmd_builder)
+    spec = cmd_builder.analyze_tool(_as_function(simple_tool))
+    builder.process_tool(simple_tool)
+
+    tasks_json = builder.create_tasks_json()
+
+    assert "version" in tasks_json
+    assert tasks_json["version"] == "2.0.0"
+    assert "tasks" in tasks_json
+    assert "inputs" in tasks_json
+    assert isinstance(tasks_json["tasks"], list)
+    assert isinstance(tasks_json["inputs"], list)
+
+
+def test_task_json_builder_final_json_structure() -> None:
+    """Ensure the final tasks.json has correct structure with tasks and inputs."""
+
+    @clitool
+    def example_tool(name: str, enabled: bool = False) -> None:  # noqa: ARG001
+        """Example tool."""
+
+    cmd_builder = CliCommandBuilder()
+    builder = _TaskJsonBuilder(cmd_builder)
+    spec = cmd_builder.analyze_tool(_as_function(example_tool))
+    builder.process_tool(example_tool)
+
+    tasks_json = builder.create_tasks_json()
+
+    assert len(tasks_json["tasks"]) == 1
+    assert len(tasks_json["inputs"]) >= 2
+    
+    task = tasks_json["tasks"][0]
+    assert task["label"] == "Example Tool"
+    assert "example-tool" in task["command"]

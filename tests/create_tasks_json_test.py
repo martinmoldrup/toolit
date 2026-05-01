@@ -7,7 +7,7 @@ from typing import Any, Optional
 import pytest
 
 from toolit import clitool
-from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string  # noqa: PLC2701
+from toolit.create_tasks_json import TaskJsonBuilder, _annotation_to_string, _create_typer_option_name  # noqa: PLC2701
 
 
 class Color(enum.Enum):
@@ -79,7 +79,7 @@ def test_create_args_for_tool_handles_pep604_optional() -> None:
 
     args = builder._create_args_for_tool(_tool_with_pep604_optional)  # noqa: SLF001
 
-    assert args == ['"${input:_tool_with_pep604_optional_input_dataset_name}"']
+    assert args == ['--input-dataset-name "${input:_tool_with_pep604_optional_input_dataset_name}"']
     assert builder.inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
     assert builder.inputs[0]["default"] is None
 
@@ -90,7 +90,7 @@ def test_create_args_for_tool_handles_typing_optional() -> None:
 
     args = builder._create_args_for_tool(_tool_with_typing_optional)  # noqa: SLF001
 
-    assert args == ['"${input:_tool_with_typing_optional_input_dataset_name}"']
+    assert args == ['--input-dataset-name "${input:_tool_with_typing_optional_input_dataset_name}"']
     assert builder.inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
     assert builder.inputs[0]["default"] is None
 
@@ -163,6 +163,7 @@ def test_create_args_for_tool_enum_respects_provided_default() -> None:
 
     args = builder._create_args_for_tool(_tool_with_enum_param_with_default)  # noqa: SLF001
 
+    assert args == ['--color "${input:_tool_with_enum_param_with_default_color}"']
     assert builder.inputs[0]["default"] == Color.RED.value
 
 
@@ -172,6 +173,10 @@ def test_create_args_for_tool_multiple_enum_params() -> None:
 
     args = builder._create_args_for_tool(_tool_with_multiple_enum_params)  # noqa: SLF001
 
+    assert args == [
+        '--color "${input:_tool_with_multiple_enum_params_color}"',
+        '--environment "${input:_tool_with_multiple_enum_params_environment}"',
+    ]
     assert len(builder.inputs) == 2
     # First input (color)
     assert builder.inputs[0]["type"] == "pickString"
@@ -199,8 +204,9 @@ def test_create_args_for_tool_list_int_serializes_default_values() -> None:
     """Ensure list[int] defaults are serialized to comma-separated text."""
     builder = TaskJsonBuilder()
 
-    builder._create_args_for_tool(_tool_with_list_int_param)  # noqa: SLF001
+    args = builder._create_args_for_tool(_tool_with_list_int_param)  # noqa: SLF001
 
+    assert args == ['--numbers "${input:_tool_with_list_int_param_numbers}"']
     assert builder.inputs[0]["description"] == "Enter comma-separated integer values for numbers (e.g. 1, 2, 3)"
     assert builder.inputs[0]["default"] == "1, 2, 3"
 
@@ -209,8 +215,9 @@ def test_create_args_for_tool_list_enum_serializes_default_values() -> None:
     """Ensure list[Enum] defaults are serialized using enum values."""
     builder = TaskJsonBuilder()
 
-    builder._create_args_for_tool(_tool_with_list_enum_param)  # noqa: SLF001
+    args = builder._create_args_for_tool(_tool_with_list_enum_param)  # noqa: SLF001
 
+    assert args == ['--colors "${input:_tool_with_list_enum_param_colors}"']
     assert (
         builder.inputs[0]["description"]
         == "Enter comma-separated enum values for colors. Accepted values: [red, green, blue]. You can also use enum member names."
@@ -222,9 +229,15 @@ def test_create_args_for_tool_optional_list_keeps_none_default() -> None:
     """Ensure optional list parameters preserve None as default."""
     builder = TaskJsonBuilder()
 
-    builder._create_args_for_tool(_tool_with_optional_list_param)  # noqa: SLF001
+    args = builder._create_args_for_tool(_tool_with_optional_list_param)  # noqa: SLF001
 
+    assert args == ['--values "${input:_tool_with_optional_list_param_values}"']
     assert builder.inputs[0]["default"] is None
+
+
+def test_create_typer_option_name_replaces_underscores() -> None:
+    """Ensure option names follow Typer's kebab-case convention."""
+    assert _create_typer_option_name("string_input") == "--string-input"
 
 
 def test_process_tool_clitool_creates_task_and_inputs() -> None:

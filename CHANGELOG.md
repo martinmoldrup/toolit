@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 - Improved support for list parameters in the CLI, and handled the vscode tasks generation for list parameters appropriately.
 - Raise an error if a proper type hint is not provided for a parameter in a tool function.
 - Make it possible to invoke the CLI using `python -m toolit` in addition to the `toolit` command, which is useful for environments where the command might not be available (or when there is a specific venv or python version you want to use).
+- Add the @clitool decorator for ability to easily run CLI commands
+- Better support for environment activation by using `uv run --no-sync` to fix problem of python interpreter not being correctly detected in vscode when using uv as the environment manager.
 
 ## [0.6.0] - 20-12-2025
 - Abandon python 3.9 which is deprecated. Now only support python 3.10 and higher.

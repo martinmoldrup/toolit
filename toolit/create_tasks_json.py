@@ -170,6 +170,11 @@ def _create_display_name(tool: FunctionType) -> str:
     return tool.__name__.replace("_", " ").title()
 
 
+def _create_typer_option_name(param_name: str) -> str:
+    """Create a Typer option name from a function parameter name."""
+    return f"--{param_name.replace('_', '-')}"
+
+
 class TaskJsonBuilder:
     """Class to build tasks.json inputs and argument mappings."""
 
@@ -248,7 +253,11 @@ class TaskJsonBuilder:
             }
             input_entry.update(input_options)
             self.inputs.append(input_entry)
-            args.append(f'"${{input:{input_id}}}"')
+            input_value_ref = f'"${{input:{input_id}}}"'
+            if param.default is inspect.Parameter.empty:
+                args.append(input_value_ref)
+            else:
+                args.append(f"{_create_typer_option_name(param.name)} {input_value_ref}")
         return args
 
     def _create_task_entry(self, tool: FunctionType, args: list[str]) -> None:

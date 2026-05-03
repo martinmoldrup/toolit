@@ -12,6 +12,8 @@ import types
 from dataclasses import dataclass
 from typing import Any, Callable, Union, get_args, get_origin
 
+from toolit.constants import OPTIONAL_STR_SENTINEL
+
 
 @dataclass
 class ParameterSpec:
@@ -29,6 +31,7 @@ class ParameterSpec:
     input_id: str
     option_name: str  # e.g., '--param-name'
     uses_option: bool  # whether parameter has a default (uses option flag)
+    is_optional_string: bool  # whether parameter is str | None
 
     # VS Code input metadata
     input_type: str  # 'promptString', 'pickString', etc.
@@ -38,7 +41,10 @@ class ParameterSpec:
 
     def get_argument_string(self) -> str:
         """Get this parameter's argument string for command building."""
-        input_ref: str = f'"${{input:{self.input_id}}}"'
+        if self.is_optional_string:
+            input_ref = f'"{OPTIONAL_STR_SENTINEL}${{input:{self.input_id}}}"'
+        else:
+            input_ref = f'"${{input:{self.input_id}}}"'
         if self.uses_option:
             return f"{self.option_name} {input_ref}"
         return input_ref
@@ -189,6 +195,12 @@ class CliCommandBuilder:
         return None
 
     @staticmethod
+    def _is_optional_str(annotation: Any) -> bool:
+        """Check whether annotation is exactly str | None."""
+        members = CliCommandBuilder._unwrap_union_annotations(annotation)
+        return str in members and type(None) in members and len(members) == 2
+
+    @staticmethod
     def _annotation_to_string(annotation: Any) -> str:
         """Convert Python type annotations to readable strings."""
         result: str = ""
@@ -315,6 +327,7 @@ class CliCommandBuilder:
             input_id: str = f"{tool.__name__}_{param.name}"
             option_name: str = self.create_typer_option_name(param.name)
             uses_option: bool = param.default is not inspect.Parameter.empty
+            is_optional_string: bool = self._is_optional_str(annotation)
 
             # Build VS Code input metadata
             input_type, input_options, description, default_value = self._build_input_metadata(param)
@@ -326,6 +339,7 @@ class CliCommandBuilder:
                 input_id=input_id,
                 option_name=option_name,
                 uses_option=uses_option,
+                is_optional_string=is_optional_string,
                 input_type=input_type,
                 input_options=input_options,
                 input_description=description,

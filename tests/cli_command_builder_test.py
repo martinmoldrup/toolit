@@ -8,6 +8,7 @@ from typing import Any, Optional, cast
 import pytest
 
 from toolit.cli_command_builder import CliCommandBuilder
+from toolit.constants import OPTIONAL_STR_SENTINEL
 
 
 def _as_function(func: Any) -> FunctionType:
@@ -137,7 +138,12 @@ def test_create_args_for_tool_handles_pep604_optional() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['--input-dataset-name "${input:_tool_with_pep604_optional_input_dataset_name}"']
+    assert args == [
+        '--input-dataset-name "'
+        f'{OPTIONAL_STR_SENTINEL}'
+        '${input:_tool_with_pep604_optional_input_dataset_name}'
+        '"'
+    ]
     assert inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
     assert inputs[0]["default"] is None
 
@@ -150,7 +156,12 @@ def test_create_args_for_tool_handles_typing_optional() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['--input-dataset-name "${input:_tool_with_typing_optional_input_dataset_name}"']
+    assert args == [
+        '--input-dataset-name "'
+        f'{OPTIONAL_STR_SENTINEL}'
+        '${input:_tool_with_typing_optional_input_dataset_name}'
+        '"'
+    ]
     assert inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
     assert inputs[0]["default"] is None
 

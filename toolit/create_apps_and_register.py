@@ -12,7 +12,11 @@ import typer
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
 
-from toolit.constants import MARKER_TOOL, ToolitTypesEnum
+from toolit.constants import (
+    MARKER_TOOL,
+    OPTIONAL_STR_SENTINEL,
+    ToolitTypesEnum,
+)
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -178,8 +182,12 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
             elif coercion_type == "bool":
                 kwargs[param_name] = str(value).lower() == "true"
             elif coercion_type == "optional_str":
-                if value == "":
-                    kwargs[param_name] = None
+                if isinstance(value, str):
+                    if value.startswith(OPTIONAL_STR_SENTINEL):
+                        raw_value = value[len(OPTIONAL_STR_SENTINEL) :]
+                        kwargs[param_name] = None if raw_value == "" else raw_value
+                    elif value == "":
+                        kwargs[param_name] = None
             elif coercion_type == "required_str":
                 if value == "":
                     typer.secho(f"Error: '{param_name}' cannot be empty.", fg=typer.colors.RED)

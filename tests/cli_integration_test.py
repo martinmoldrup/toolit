@@ -6,8 +6,10 @@ type conversions, and handling of edge cases like empty strings and multiple val
 """
 
 import enum
+import json
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -515,3 +517,63 @@ class TestDesignQuestions:
         3. Treated as a special marker?
         """
         pass
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="PowerShell empty argument behavior is Windows-specific")
+def test_toolit_cli_handles_empty_optional_string_from_generated_task_command(tmp_path: Path) -> None:
+    """Ensure generated task commands can pass empty optional string values through PowerShell."""
+    workspace: Path = tmp_path / "workspace"
+    workspace.mkdir()
+
+    (workspace / "pyproject.toml").write_text('[toolit]\ntools_folder = "devtools"\n', encoding="utf-8")
+
+    devtools_dir: Path = workspace / "devtools"
+    devtools_dir.mkdir()
+    (devtools_dir / "chat_tools.py").write_text(
+        "from toolit.decorators import tool\n"
+        "import typer\n\n"
+        "@tool\n"
+        "def run_chatflow(question: str, chat_history: str | None = None) -> None:\n"
+        "    typer.echo(f\"question={question}\")\n"
+        "    typer.echo(f\"chat_history={chat_history!r}\")\n",
+        encoding="utf-8",
+    )
+
+    generate_tasks_result = subprocess.run(
+        [sys.executable, "-m", "toolit", "create-vscode-tasks-json"],
+        cwd=workspace,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert generate_tasks_result.returncode == 0, (
+        "Failed to generate tasks.json.\n"
+        f"stdout:\n{generate_tasks_result.stdout}\n"
+        f"stderr:\n{generate_tasks_result.stderr}"
+    )
+
+    tasks_path: Path = workspace / ".vscode" / "tasks.json"
+    tasks_payload = json.loads(tasks_path.read_text(encoding="utf-8"))
+    task_entry = next(task for task in tasks_payload["tasks"] if task["label"] == "Run Chatflow")
+
+    command: str = task_entry["command"]
+    command = command.replace('${input:run_chatflow_question}', "What is an e-pump?")
+    command = command.replace('${input:run_chatflow_chat_history}', "")
+    # Emulate task/native command paths where explicit empty-string arguments are dropped.
+    command = command.replace('""', "")
+
+    execute_result = subprocess.run(
+        ["pwsh", "-NoProfile", "-Command", command],
+        cwd=workspace,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert execute_result.returncode == 0, (
+        "Executing generated command failed.\n"
+        f"Command: {command}\n"
+        f"stdout:\n{execute_result.stdout}\n"
+        f"stderr:\n{execute_result.stderr}"
+    )
+    assert "chat_history=None" in execute_result.stdout

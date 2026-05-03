@@ -3,6 +3,7 @@
 import enum
 
 MARKER_TOOL = "__toolit_tool_type__"
+OPTIONAL_STR_SENTINEL = "__toolit_optional_str_prefix__"
 
 
 class RichHelpPanelNames:

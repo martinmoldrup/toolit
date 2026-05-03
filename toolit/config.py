@@ -6,6 +6,7 @@ User can define the configuration by either:
 - Creating a `toolit.ini` toml file in the current working directory
 - Adding to the `pyproject.toml` file in the current working directory
 """
+
 from __future__ import annotations
 
 import toml
@@ -54,6 +55,7 @@ def _load_config() -> dict[str, str]:
 
 @overload
 def get_config_value(key: str, default: None = None) -> str | None: ...
+
 
 @overload
 def get_config_value(key: str, default: str) -> str: ...

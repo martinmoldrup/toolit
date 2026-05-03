@@ -1,4 +1,5 @@
-"""Generate VS Code tasks.json entries from discovered tools.
+"""
+Generate VS Code tasks.json entries from discovered tools.
 
 Scope: this module builds tasks.json structure by consuming rich metadata from
 CliCommandBuilder. It delegates all tool inspection and metadata generation to
@@ -6,12 +7,8 @@ the command builder.
 """
 
 import json
-import pathlib
-from types import FunctionType
-from typing import Any
-
 import typer
-
+import pathlib
 from toolit.auto_loader import (
     clitool_strategy,
     get_items_from_folder,
@@ -20,9 +17,11 @@ from toolit.auto_loader import (
     tool_group_strategy,
     tool_strategy,
 )
-from toolit.cli_command_builder import CliCommandBuilder
+from toolit.cli_command_builder import CliCommandBuilder, ToolCommandSpec
 from toolit.config import load_devtools_folder
 from toolit.constants import ToolitTypesEnum
+from types import FunctionType
+from typing import Any
 
 PATH: pathlib.Path = load_devtools_folder()
 output_file_path: pathlib.Path = pathlib.Path() / ".vscode" / "tasks.json"
@@ -61,9 +60,11 @@ class _TaskJsonBuilder:
         self.inputs: list[dict[str, Any]] = []
         self.tasks: list[dict[str, Any]] = []
 
-    def _create_task_entry(self, spec) -> None:  # ToolCommandSpec
+    def _create_task_entry(self, spec: ToolCommandSpec) -> None:
         """Create a task entry from a tool command spec."""
-        command: str = spec.build_command(self.cli_command_builder.program_name, self.cli_command_builder.command_prefix)
+        command: str = spec.build_command(
+            self.cli_command_builder.program_name, self.cli_command_builder.command_prefix,
+        )
         task: dict[str, Any] = {
             "label": spec.display_name,
             "type": "shell",
@@ -74,7 +75,7 @@ class _TaskJsonBuilder:
             task["detail"] = spec.docstring.strip()
         self.tasks.append(task)
 
-    def _create_task_group_entry(self, tool: FunctionType, tool_type) -> None:  # ToolitTypesEnum
+    def _create_task_group_entry(self, tool: FunctionType, tool_type: ToolitTypesEnum) -> None:
         """Create a task group entry for a given tool."""
         group_name: str = self.cli_command_builder.create_group_name(tool)
         tools: list[FunctionType] = tool()  # Call the tool to get the list of tools in the group

@@ -8,7 +8,9 @@
   - Organize code around domain behavior and boundaries, not only technical layers.
   - Avoid leaking infrastructure details into core domain logic.
 - Keep business rules close to domain models and domain services.
-
+- Use modern python syntax for python 3.10 and higher, such as pattern matching, type hints, dataclasses, enums, f-strings, and more.
+- Favor pathlib for file system paths and operations
+- Follow pep8 and use type hints (avoid dynamically typed Any when possible, prefer more specific types)
 ## Command Execution
 
 - Use `uv run` when project Python dependencies or the project environment are needed.

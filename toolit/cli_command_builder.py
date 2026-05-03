@@ -1,4 +1,5 @@
-"""Build complete CLI commands with rich metadata for tool functions.
+"""
+Build complete CLI commands with rich metadata for tool functions.
 
 Scope: this module handles complete tool inspection including parameter analysis,
 VS Code input metadata generation, command-line name formatting, and shell command
@@ -6,18 +7,19 @@ assembly. The command builder is self-contained and returns rich domain objects.
 """
 
 import enum
-import inspect
 import shutil
-import types
+import inspect
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Union, get_args, get_origin
-
 from toolit.constants import OPTIONAL_STR_SENTINEL
+from toolit.type_utils import is_union_type, unwrap_union_members
+from typing import Any, get_args, get_origin
 
 
 @dataclass
 class ParameterSpec:
-    """Complete specification for a single tool parameter.
+    """
+    Complete specification for a single tool parameter.
 
     Includes both CLI-specific information (option names, argument building)
     and VS Code input metadata (type, description, default, options).
@@ -89,7 +91,8 @@ class ToolCommandSpec:
         return self.tool_name.replace("_", "-").lower()
 
     def build_command(self, program_name: str = "toolit", command_prefix: str | None = None) -> str:
-        """Build the complete shell command string for this tool spec.
+        """
+        Build the complete shell command string for this tool spec.
 
         Args:
             program_name: The program/command name (default: 'toolit').
@@ -97,6 +100,7 @@ class ToolCommandSpec:
 
         Returns:
             Complete shell command string ready for execution.
+
         """
         if command_prefix is None:
             command_prefix = "uv run --no-sync " if shutil.which("uv") else ""
@@ -110,7 +114,8 @@ class CliCommandBuilder:
     """Expert analyzer for tool commands with rich metadata generation."""
 
     def __init__(self, program_name: str = "toolit", command_prefix: str | None = None) -> None:
-        """Initialize command builder settings.
+        """
+        Initialize command builder settings.
 
         When command_prefix is omitted, uv is used when available.
         """
@@ -155,12 +160,7 @@ class CliCommandBuilder:
     @staticmethod
     def _unwrap_union_annotations(annotation: Any) -> list[Any]:
         """Return union members for X | Y or Union[X, Y], or the annotation itself."""
-        origin = get_origin(annotation)
-        args = get_args(annotation)
-        union_type = getattr(types, "UnionType", None)
-        if origin is Union or (union_type is not None and origin is union_type):
-            return list(args)
-        return [annotation]
+        return unwrap_union_members(annotation)
 
     @staticmethod
     def _extract_enum_type(annotation: Any) -> type[enum.Enum] | None:
@@ -215,8 +215,7 @@ class CliCommandBuilder:
             origin = get_origin(annotation)
             args = get_args(annotation)
 
-            union_type = getattr(types, "UnionType", None)
-            if origin is Union or (union_type is not None and origin is union_type):
+            if is_union_type(annotation):
                 result = " | ".join(CliCommandBuilder._annotation_to_string(arg) for arg in args)
             elif origin is not None:
                 origin_name = getattr(origin, "__name__", str(origin).replace("typing.", ""))
@@ -249,7 +248,8 @@ class CliCommandBuilder:
         return f"Enter comma-separated values for {param_name} ({item_type_name})"
 
     def _build_input_metadata(self, param: inspect.Parameter) -> tuple[str, dict[str, Any], str, Any]:
-        """Build VS Code input metadata for a single parameter.
+        """
+        Build VS Code input metadata for a single parameter.
 
         Returns: (input_type, input_options, description, default_value)
         """
@@ -297,7 +297,8 @@ class CliCommandBuilder:
         return input_type, input_options, description, default_value
 
     def analyze_tool(self, tool: Callable[..., Any]) -> ToolCommandSpec:
-        """Analyze tool and return complete specification for building command and inputs.
+        """
+        Analyze tool and return complete specification for building command and inputs.
 
         Args:
             tool: The tool function to analyze.
@@ -307,6 +308,7 @@ class CliCommandBuilder:
 
         Raises:
             ValueError: If a parameter lacks a type annotation.
+
         """
         sig = inspect.signature(tool)
         parameters: dict[str, ParameterSpec] = {}

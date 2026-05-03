@@ -2,29 +2,31 @@
 
 from __future__ import annotations
 
-import enum
-import inspect
 import os
-import subprocess
-import types
-from functools import wraps
+import enum
+import shlex
 import typer
+import inspect
+import subprocess
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
-
+from functools import wraps
 from toolit.constants import (
     MARKER_TOOL,
     OPTIONAL_STR_SENTINEL,
     ToolitTypesEnum,
 )
+from toolit.type_utils import unwrap_union_members
+from typing import TYPE_CHECKING, Any, get_args, get_origin
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
+
     _has_mcp: bool = True
 else:
     # Make MCP optional
     try:
         from mcp.server.fastmcp import FastMCP
+
         _has_mcp = True
     except ImportError:
         FastMCP: Any = None  # type: ignore[no-redef]
@@ -61,18 +63,9 @@ def register_command(
         mcp.tool(name)(command_func)
 
 
-def _unwrap_union_members(annotation: Any) -> list[Any]:
-    """Return members for X | Y / Union[X, Y], or a single-element list otherwise."""
-    origin = get_origin(annotation)
-    union_type = getattr(types, "UnionType", None)
-    if origin is Union or (union_type is not None and isinstance(annotation, union_type)):
-        return list(get_args(annotation))
-    return [annotation]
-
-
 def _extract_list_item_type(annotation: Any) -> Any | None:
     """Return the T for list[T] (including Optional[list[T]]), or None if not a list."""
-    for candidate in _unwrap_union_members(annotation):
+    for candidate in unwrap_union_members(annotation):
         if candidate is type(None):
             continue
         if get_origin(candidate) is list:
@@ -83,12 +76,13 @@ def _extract_list_item_type(annotation: Any) -> Any | None:
 
 def _is_optional_list(annotation: Any) -> bool:
     """Return True when annotation allows None alongside a list type."""
-    members = _unwrap_union_members(annotation)
+    members = unwrap_union_members(annotation)
     return type(None) in members and any(get_origin(m) is list for m in members)
+
 
 def _is_optional_str(annotation: Any) -> bool:
     """Return True when annotation is exactly str | None."""
-    members = _unwrap_union_members(annotation)
+    members = unwrap_union_members(annotation)
     return str in members and type(None) in members and len(members) == 2
 
 
@@ -99,11 +93,12 @@ def _is_required_str(annotation: Any, default: Any) -> bool:
 
 def _contains_bool(annotation: Any) -> bool:
     """Return True when annotation is or contains bool."""
-    return any(m is bool for m in _unwrap_union_members(annotation))
+    return any(m is bool for m in unwrap_union_members(annotation))
 
 
 def _coerce_list_value(value: list[Any], item_type: Any) -> list[Any]:
-    """Split a single comma-separated element if needed, then convert to item_type.
+    """
+    Split a single comma-separated element if needed, then convert to item_type.
 
     Returns None unchanged (for optional list parameters with no value provided).
     """
@@ -124,7 +119,8 @@ def _coerce_list_value(value: list[Any], item_type: Any) -> list[Any]:
 
 
 def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
-    """Wrap a function to add CLI type coercions applied before the function is called.
+    """
+    Wrap a function to add CLI type coercions applied before the function is called.
 
     Handles:
     - list[T]: splits single comma-separated arg; preserves native multi-arg behavior.
@@ -186,10 +182,10 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
                     if value.startswith(OPTIONAL_STR_SENTINEL):
                         raw_value = value[len(OPTIONAL_STR_SENTINEL) :]
                         kwargs[param_name] = None if raw_value == "" else raw_value
-                    elif value == "":
+                    elif not value:
                         kwargs[param_name] = None
             elif coercion_type == "required_str":
-                if value == "":
+                if not value:
                     typer.secho(f"Error: '{param_name}' cannot be empty.", fg=typer.colors.RED)
                     raise typer.Exit(code=1)
 
@@ -199,9 +195,7 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
     # Rebuild __annotations__ to match the new signature so Typer/get_type_hints
     # sees the transformed types rather than the originals copied by @wraps.
     new_annotations: dict[str, Any] = {
-        p.name: p.annotation
-        for p in new_sig.parameters.values()
-        if p.annotation is not inspect.Parameter.empty
+        p.name: p.annotation for p in new_sig.parameters.values() if p.annotation is not inspect.Parameter.empty
     }
     if sig.return_annotation is not inspect.Parameter.empty:
         new_annotations["return"] = sig.return_annotation
@@ -234,7 +228,21 @@ def _create_clitool_runtime_wrapper(command_func: Callable[..., Any]) -> Callabl
             # Use PowerShell on Windows so command quoting matches interactive pwsh usage.
             result = subprocess.run(["pwsh", "-NoProfile", "-Command", command_to_run], check=False)
         else:
-            result = subprocess.run(command_to_run, shell=True, check=False)  # noqa: S602
+            # For non-Windows: try to split the command safely to avoid shell injection.
+            # If the command contains shell metacharacters (pipes, redirects, etc.),
+            # fall back to shell=True which is necessary for those features.
+            shell_metacharacters = set("|&;<>()$`\\\"'")
+            if any(char in command_to_run for char in shell_metacharacters):
+                # Contains shell syntax - must use shell=True
+                result = subprocess.run(command_to_run, shell=True, check=False)  # noqa: S602
+            else:
+                # Simple command - safe to split and execute without shell
+                try:
+                    cmd_args = shlex.split(command_to_run)
+                    result = subprocess.run(cmd_args, check=False)
+                except ValueError:
+                    # If shlex.split fails, fall back to shell=True
+                    result = subprocess.run(command_to_run, shell=True, check=False)  # noqa: S602
         if result.returncode != 0:
             raise typer.Exit(code=result.returncode)
 

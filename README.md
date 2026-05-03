@@ -36,6 +36,20 @@ toolit --help  # To see available commands
 toolit my-command --to_print "Hello, Toolit!"  # To run your command
 ```
 
+You add a command line command with parameter as a devtool, and it will be available as a command in the CLI and in the generated `tasks.json` file for Visual Studio Code. You do this by:
+
+```python
+# devtools/my_cli_commands.py
+from toolit import clitool
+@clitool
+def execute_cli_command(to_print: str = "Hello, World!") -> str:
+    """This is a command that can be run from the CLI."""
+    return "python -c 'print(\"" + to_print + "\")'"
+```
+
+When this command runs from CLI or a generated VS Code task, Toolit executes the returned string in your shell.
+
+
 ### Customizing the DevTools Folder
 By default, Toolit looks for a folder named `devtools` in the project root. You can customize this by creating a `toolit.ini` or use your `pyproject.toml` file in your project root with the following content:
 

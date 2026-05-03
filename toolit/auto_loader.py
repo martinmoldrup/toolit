@@ -46,6 +46,11 @@ def tool_strategy(module: ModuleType) -> list[FunctionType]:
     return load_tools_from_file(module, ToolitTypesEnum.TOOL)
 
 
+def clitool_strategy(module: ModuleType) -> list[FunctionType]:
+    """Strategy to get CLI tools from a module."""
+    return load_tools_from_file(module, ToolitTypesEnum.CLITOOL)
+
+
 def tool_group_strategy(module: ModuleType) -> list[FunctionType]:
     """Strategy to get tool groups from a module."""
     groups: list[FunctionType] = []
@@ -82,11 +87,14 @@ def load_tools_from_folder(folder_path: pathlib.Path) -> list[FunctionType]:
         folder_path = pathlib.Path.cwd() / folder_path
 
     tools: list[FunctionType] = get_items_from_folder(folder_path, tool_strategy)
+    clitools: list[FunctionType] = get_items_from_folder(folder_path, clitool_strategy)
     tool_groups: list[FunctionType] = get_items_from_folder(folder_path, tool_group_strategy)
     # Register each tool as a command
     for tool in tools:
         register_command(tool, rich_help_panel=RichHelpPanelNames.PROJECT_COMMANDS_PANEL)
-    return tools + tool_groups
+    for clitool in clitools:
+        register_command(clitool, rich_help_panel=RichHelpPanelNames.PROJECT_COMMANDS_PANEL)
+    return tools + clitools + tool_groups
 
 
 def get_toolit_type(tool: FunctionType) -> ToolitTypesEnum | None:

@@ -1,0 +1,135 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Create New Release",
+            "type": "shell",
+            "command": "uv run --no-sync toolit create-new-release",
+            "problemMatcher": [],
+            "detail": "Create a new release for the project, by reading the version from the pyproject.toml file, and adding and pushing a new tag to the repository."
+        },
+        {
+            "label": "Create New Task In Devops",
+            "type": "shell",
+            "command": "uv run --no-sync toolit create-new-task-in-devops \"${input:create_new_task_in_devops_title}\" \"${input:create_new_task_in_devops_description}\" \"${input:create_new_task_in_devops_work_item_id}\" \"${input:create_new_task_in_devops_target_branch}\" --draft \"${input:create_new_task_in_devops_draft}\"",
+            "problemMatcher": [],
+            "detail": "Create a new task in Azure DevOps."
+        },
+        {
+            "label": "Get Change Log",
+            "type": "shell",
+            "command": "uv run --no-sync toolit get-change-log",
+            "problemMatcher": [],
+            "detail": "Mocked for now."
+        },
+        {
+            "label": "Task String Input With Default",
+            "type": "shell",
+            "command": "uv run --no-sync toolit task-string-input-with-default --string-input \"${input:task_string_input_with_default_string_input}\"",
+            "problemMatcher": [],
+            "detail": "A task that uses a string input with a default value."
+        },
+        {
+            "label": "Task Use Bool Input",
+            "type": "shell",
+            "command": "uv run --no-sync toolit task-use-bool-input \"${input:task_use_bool_input_bool_input}\"",
+            "problemMatcher": [],
+            "detail": "A task that uses a boolean input."
+        },
+        {
+            "label": "Task Use Enum Input",
+            "type": "shell",
+            "command": "uv run --no-sync toolit task-use-enum-input \"${input:task_use_enum_input_enum_input}\"",
+            "problemMatcher": [],
+            "detail": "A task that uses an enum input."
+        },
+        {
+            "label": "Dummy Clitool",
+            "type": "shell",
+            "command": "uv run --no-sync toolit dummy-clitool",
+            "problemMatcher": [],
+            "detail": "A dummy CLI tool that returns a shell command string."
+        },
+        {
+            "label": "Group: Task Run Both Tools",
+            "dependsOn": [
+                "Task Use Bool Input",
+                "Task Use Enum Input"
+            ],
+            "problemMatcher": [],
+            "dependsOrder": "sequence",
+            "detail": "Run both tools in a sequential group."
+        },
+        {
+            "label": "Group: Task Run Both Tools Parallel",
+            "dependsOn": [
+                "Task Use Bool Input",
+                "Task Use Enum Input"
+            ],
+            "problemMatcher": [],
+            "detail": "Run both tools in a parallel group."
+        }
+    ],
+    "inputs": [
+        {
+            "id": "create_new_task_in_devops_title",
+            "type": "promptString",
+            "description": "Enter value for title (str)",
+            "default": ""
+        },
+        {
+            "id": "create_new_task_in_devops_description",
+            "type": "promptString",
+            "description": "Enter value for description (str)",
+            "default": ""
+        },
+        {
+            "id": "create_new_task_in_devops_work_item_id",
+            "type": "promptString",
+            "description": "Enter value for work_item_id (str)",
+            "default": ""
+        },
+        {
+            "id": "create_new_task_in_devops_target_branch",
+            "type": "promptString",
+            "description": "Enter value for target_branch (str)",
+            "default": ""
+        },
+        {
+            "id": "create_new_task_in_devops_draft",
+            "type": "pickString",
+            "description": "Enter value for draft (bool)",
+            "default": "False",
+            "options": [
+                "True",
+                "False"
+            ]
+        },
+        {
+            "id": "task_string_input_with_default_string_input",
+            "type": "promptString",
+            "description": "Enter value for string_input (str)",
+            "default": "default value"
+        },
+        {
+            "id": "task_use_bool_input_bool_input",
+            "type": "pickString",
+            "description": "Enter value for bool_input (bool)",
+            "default": "False",
+            "options": [
+                "True",
+                "False"
+            ]
+        },
+        {
+            "id": "task_use_enum_input_enum_input",
+            "type": "pickString",
+            "description": "Enter value for enum_input (DummyEnum)",
+            "default": "Option a",
+            "options": [
+                "Option a",
+                "Option b"
+            ]
+        }
+    ]
+}

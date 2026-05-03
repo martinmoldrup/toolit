@@ -1,4 +1,5 @@
 """Register all tools and plugins to be used by default."""
+
 from toolit.auto_loader import load_tools_from_folder, load_tools_from_plugins
 from toolit.config import load_devtools_folder
 from toolit.constants import RichHelpPanelNames

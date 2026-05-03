@@ -3,6 +3,7 @@
 import enum
 
 MARKER_TOOL = "__toolit_tool_type__"
+OPTIONAL_STR_SENTINEL = "__toolit_optional_str_prefix__"
 
 
 class RichHelpPanelNames:
@@ -23,5 +24,6 @@ class ToolitTypesEnum(enum.Enum):
     """Enum for the different types of toolit tools."""
 
     TOOL = "tool"
+    CLITOOL = "clitool"
     SEQUENTIAL_GROUP = "sequential_group"
     PARALLEL_GROUP = "parallel_group"

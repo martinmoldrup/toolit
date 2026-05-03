@@ -13,7 +13,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from toolit.constants import OPTIONAL_STR_SENTINEL
 from toolit.type_utils import is_union_type, unwrap_union_members
-from typing import get_args, get_origin
+from typing import cast, get_args, get_origin
 
 OPTIONAL_UNION_MEMBER_COUNT = 2
 
@@ -171,7 +171,7 @@ class CliCommandBuilder:
             if candidate in {None, type(None)}:
                 continue
             if CliCommandBuilder._is_enum(candidate):
-                return candidate
+                return cast("type[enum.Enum]", candidate)
         return None
 
     @staticmethod
@@ -239,7 +239,8 @@ class CliCommandBuilder:
         if list_item_type is int:
             return f"Enter comma-separated integer values for {param_name} (e.g. 1, 2, 3)"
         if CliCommandBuilder._is_enum(list_item_type):
-            accepted_values = ", ".join(str(member.value) for member in list_item_type)
+            enum_type = cast("type[enum.Enum]", list_item_type)
+            accepted_values = ", ".join(str(member.value) for member in enum_type)
             return (
                 f"Enter comma-separated enum values for {param_name}. "
                 f"Accepted values: [{accepted_values}]. You can also use enum member names."
@@ -267,7 +268,8 @@ class CliCommandBuilder:
             else:
                 # Serialize list defaults
                 rendered_items: list[str] = []
-                for item in param.default:
+                default_values = cast("list[object]", param.default)
+                for item in default_values:
                     if isinstance(item, enum.Enum):
                         rendered_items.append(str(item.value))
                     else:

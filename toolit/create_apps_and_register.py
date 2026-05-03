@@ -16,12 +16,12 @@ from toolit.constants import (
     ToolitTypesEnum,
 )
 from toolit.type_utils import unwrap_union_members
-from typing import TYPE_CHECKING, get_args, get_origin
+from typing import TYPE_CHECKING, cast, get_args, get_origin
 
 OPTIONAL_UNION_MEMBER_COUNT = 2
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server.fastmcp import FastMCP  # type: ignore[import-not-found]
 
     _has_mcp: bool = True
 else:
@@ -98,29 +98,85 @@ def _contains_bool(annotation: object) -> bool:
     return any(m is bool for m in unwrap_union_members(annotation))
 
 
-def _coerce_list_value(value: list[object], item_type: object) -> list[object] | None:
+def _coerce_list_value(value: list[object] | None, item_type: object) -> list[object] | None:
     """
     Split a single comma-separated element if needed, then convert to item_type.
 
     Returns None unchanged (for optional list parameters with no value provided).
     """
     if value is None:
-        return None  # type: ignore[return-value]
+        return None
     if len(value) == 1 and isinstance(value[0], str) and "," in value[0]:
         raw_items: list[str] = [v.strip() for v in value[0].split(",") if v.strip()]
     else:
         raw_items = [str(v) for v in value]
 
     if item_type is str:
-        return raw_items
+        return cast("list[object]", raw_items)
     if item_type is int:
-        return [int(v) for v in raw_items]
+        return cast("list[object]", [int(v) for v in raw_items])
     if isinstance(item_type, type) and issubclass(item_type, enum.Enum):
-        return [item_type(v) for v in raw_items]
-    return raw_items
+        return cast("list[object]", [item_type(v) for v in raw_items])
+    return cast("list[object]", raw_items)
 
 
-def _create_type_coercion_wrapper(func: Callable[..., object]) -> Callable[..., object]:  # noqa: C901
+def _parameter_coercion_spec(
+    param: inspect.Parameter,
+) -> tuple[inspect.Parameter, tuple[str, object | None] | None]:
+    """Return rewritten parameter and optional coercion metadata for runtime conversion."""
+    ann = param.annotation
+
+    list_item_type = _extract_list_item_type(ann)
+    if list_item_type is not None:
+        new_ann: object = (list[str] | None) if _is_optional_list(ann) else list[str]
+        return param.replace(annotation=new_ann), ("list", list_item_type)
+
+    if _contains_bool(ann):
+        bool_default = "False" if param.default is inspect.Parameter.empty else str(param.default)
+        return param.replace(annotation=str, default=bool_default), ("bool", None)
+
+    if _is_optional_str(ann):
+        return param, ("optional_str", None)
+
+    if _is_required_str(ann, param.default):
+        return param, ("required_str", None)
+
+    return param, None
+
+
+def _normalize_list_input(value: object) -> list[object] | None:
+    """Normalize Typer list input into a list or None before list coercion."""
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return cast("list[object]", value)
+    return [value]
+
+
+def _apply_single_coercion(param_name: str, coercion_type: str, extra: object | None, value: object) -> object:
+    """Apply a single coercion strategy to one parameter value."""
+    if coercion_type == "list":
+        return _coerce_list_value(_normalize_list_input(value), extra)
+
+    if coercion_type == "bool":
+        return str(value).lower() == "true"
+
+    if coercion_type == "optional_str":
+        if isinstance(value, str) and value.startswith(OPTIONAL_STR_SENTINEL):
+            raw_value = value[len(OPTIONAL_STR_SENTINEL) :]
+            return raw_value or None
+        if isinstance(value, str) and not value:
+            return None
+        return value
+
+    if coercion_type == "required_str" and isinstance(value, str) and not value:
+        typer.secho(f"Error: '{param_name}' cannot be empty.", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    return value
+
+
+def _create_type_coercion_wrapper(func: Callable[..., object]) -> Callable[..., object]:
     """
     Wrap a function to add CLI type coercions applied before the function is called.
 
@@ -135,33 +191,10 @@ def _create_type_coercion_wrapper(func: Callable[..., object]) -> Callable[..., 
     coercions: dict[str, tuple[str, object | None]] = {}
 
     for param in sig.parameters.values():
-        ann = param.annotation
-
-        list_item_type = _extract_list_item_type(ann)
-        if list_item_type is not None:
-            coercions[param.name] = ("list", list_item_type)
-            # Expose list[str] (or list[str] | None) to Typer so it skips type conversion.
-            new_ann: object = (list[str] | None) if _is_optional_list(ann) else list[str]
-            new_params.append(param.replace(annotation=new_ann))
-            continue
-
-        if _contains_bool(ann):
-            coercions[param.name] = ("bool", None)
-            bool_default = "False" if param.default is inspect.Parameter.empty else str(param.default)
-            new_params.append(param.replace(annotation=str, default=bool_default))
-            continue
-
-        if _is_optional_str(ann):
-            coercions[param.name] = ("optional_str", None)
-            new_params.append(param)
-            continue
-
-        if _is_required_str(ann, param.default):
-            coercions[param.name] = ("required_str", None)
-            new_params.append(param)
-            continue
-
-        new_params.append(param)
+        rewritten_param, coercion = _parameter_coercion_spec(param)
+        new_params.append(rewritten_param)
+        if coercion is not None:
+            coercions[param.name] = coercion
 
     if not coercions:
         return func
@@ -173,25 +206,11 @@ def _create_type_coercion_wrapper(func: Callable[..., object]) -> Callable[..., 
         for param_name, (coercion_type, extra) in coercions.items():
             if param_name not in kwargs:
                 continue
-            value = kwargs[param_name]
-
-            if coercion_type == "list":
-                kwargs[param_name] = _coerce_list_value(value, extra)
-            elif coercion_type == "bool":
-                kwargs[param_name] = str(value).lower() == "true"
-            elif coercion_type == "optional_str":
-                if isinstance(value, str) and value.startswith(OPTIONAL_STR_SENTINEL):
-                    raw_value = value[len(OPTIONAL_STR_SENTINEL) :]
-                    kwargs[param_name] = raw_value or None
-                elif isinstance(value, str) and not value:
-                    kwargs[param_name] = None
-            elif coercion_type == "required_str" and isinstance(value, str) and not value:
-                typer.secho(f"Error: '{param_name}' cannot be empty.", fg=typer.colors.RED)
-                raise typer.Exit(code=1)
+            kwargs[param_name] = _apply_single_coercion(param_name, coercion_type, extra, kwargs[param_name])
 
         return func(*args, **kwargs)
 
-    _wrapper.__signature__ = new_sig
+    setattr(_wrapper, "__signature__", new_sig)  # noqa: B010
     # Rebuild __annotations__ to match the new signature so Typer/get_type_hints
     # sees the transformed types rather than the originals copied by @wraps.
     new_annotations: dict[str, object] = {
@@ -246,5 +265,5 @@ def _create_clitool_runtime_wrapper(command_func: Callable[..., object]) -> Call
         if result.returncode != 0:
             raise typer.Exit(code=result.returncode)
 
-    _wrapped.__signature__ = inspect.signature(command_func)
+    setattr(_wrapped, "__signature__", inspect.signature(command_func))  # noqa: B010
     return _wrapped

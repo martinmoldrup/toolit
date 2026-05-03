@@ -164,7 +164,9 @@ def test_clitool_runtime_executes_returned_shell_command(monkeypatch: pytest.Mon
     )
 
     assert result.exit_code == 0, result.output
-    assert "echo hello" in captured["command"]
+    # Runtime may execute as a shell string or split argv list depending on platform/safety path.
+    assert "echo" in captured["command"]
+    assert "hello" in captured["command"]
     assert captured["check"] == "False"
 
 

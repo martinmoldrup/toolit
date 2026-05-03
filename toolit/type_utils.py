@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import types
-from typing import Any, Union, get_args, get_origin
+from typing import Union, get_args, get_origin
 
 
-def is_union_type(annotation: Any) -> bool:
+def is_union_type(annotation: object) -> bool:
     """
     Check if annotation is a Union type (Union[X, Y] or X | Y).
 
@@ -19,7 +19,7 @@ def is_union_type(annotation: Any) -> bool:
     return origin is Union or (union_type is not None and origin is union_type)
 
 
-def unwrap_union_members(annotation: Any) -> list[Any]:
+def unwrap_union_members(annotation: object) -> list[object]:
     """Return members for X | Y / Union[X, Y], or a single-element list otherwise."""
     if is_union_type(annotation):
         return list(get_args(annotation))

@@ -13,7 +13,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from toolit.constants import OPTIONAL_STR_SENTINEL
 from toolit.type_utils import is_union_type, unwrap_union_members
-from typing import Any, get_args, get_origin
+from typing import get_args, get_origin
+
+OPTIONAL_UNION_MEMBER_COUNT = 2
 
 
 @dataclass
@@ -26,8 +28,8 @@ class ParameterSpec:
     """
 
     name: str
-    annotation: Any
-    default: Any
+    annotation: object
+    default: object
 
     # CLI metadata
     input_id: str
@@ -37,9 +39,9 @@ class ParameterSpec:
 
     # VS Code input metadata
     input_type: str  # 'promptString', 'pickString', etc.
-    input_options: dict[str, Any]  # options for pickString, etc.
+    input_options: dict[str, object]  # options for pickString, etc.
     input_description: str
-    input_default: Any
+    input_default: object
 
     def get_argument_string(self) -> str:
         """Get this parameter's argument string for command building."""
@@ -51,9 +53,9 @@ class ParameterSpec:
             return f"{self.option_name} {input_ref}"
         return input_ref
 
-    def to_input_entry(self) -> dict[str, Any]:
+    def to_input_entry(self) -> dict[str, object]:
         """Convert to VS Code input entry for tasks.json."""
-        entry: dict[str, Any] = {
+        entry: dict[str, object] = {
             "id": self.input_id,
             "type": self.input_type,
             "description": self.input_description,
@@ -67,7 +69,7 @@ class ParameterSpec:
 class ToolCommandSpec:
     """Rich specification for building a tool command with full metadata."""
 
-    tool: Callable[..., Any]
+    tool: Callable[..., object]
     tool_name: str
     display_name: str
     docstring: str | None
@@ -77,7 +79,7 @@ class ToolCommandSpec:
         """Get all argument strings in parameter order."""
         return [param.get_argument_string() for param in self.parameters.values()]
 
-    def get_input_entries(self) -> list[dict[str, Any]]:
+    def get_input_entries(self) -> list[dict[str, object]]:
         """Get all VS Code input entries for tasks.json."""
         return [param.to_input_entry() for param in self.parameters.values()]
 
@@ -123,7 +125,7 @@ class CliCommandBuilder:
         self.command_prefix: str = command_prefix if command_prefix is not None else self._detect_command_prefix()
 
     @staticmethod
-    def create_typer_command_name(tool: Callable[..., Any]) -> str:
+    def create_typer_command_name(tool: Callable[..., object]) -> str:
         """Create a Typer command name from a tool function name."""
         return tool.__name__.replace("_", "-").lower()
 
@@ -133,12 +135,12 @@ class CliCommandBuilder:
         return f"--{param_name.replace('_', '-')}"
 
     @staticmethod
-    def create_display_name(tool: Callable[..., Any]) -> str:
+    def create_display_name(tool: Callable[..., object]) -> str:
         """Create a user-facing display name from a tool function name."""
         return tool.__name__.replace("_", " ").title()
 
     @staticmethod
-    def create_group_name(tool: Callable[..., Any]) -> str:
+    def create_group_name(tool: Callable[..., object]) -> str:
         """Create a user-facing group label for grouped tools."""
         return "Group: " + tool.__name__.replace("_", " ").title()
 
@@ -148,22 +150,22 @@ class CliCommandBuilder:
         return "uv run --no-sync " if shutil.which("uv") else ""
 
     @staticmethod
-    def _is_enum(annotation: Any) -> bool:
+    def _is_enum(annotation: object) -> bool:
         """Check if annotation is an Enum type."""
         return isinstance(annotation, type) and issubclass(annotation, enum.Enum)
 
     @staticmethod
-    def _is_bool(annotation: Any) -> bool:
+    def _is_bool(annotation: object) -> bool:
         """Check if annotation is a bool type."""
         return annotation is bool
 
     @staticmethod
-    def _unwrap_union_annotations(annotation: Any) -> list[Any]:
+    def _unwrap_union_annotations(annotation: object) -> list[object]:
         """Return union members for X | Y or Union[X, Y], or the annotation itself."""
         return unwrap_union_members(annotation)
 
     @staticmethod
-    def _extract_enum_type(annotation: Any) -> type[enum.Enum] | None:
+    def _extract_enum_type(annotation: object) -> type[enum.Enum] | None:
         """Extract enum type from annotation, including optional/union wrappers."""
         for candidate in CliCommandBuilder._unwrap_union_annotations(annotation):
             if candidate in {None, type(None)}:
@@ -173,7 +175,7 @@ class CliCommandBuilder:
         return None
 
     @staticmethod
-    def _contains_bool(annotation: Any) -> bool:
+    def _contains_bool(annotation: object) -> bool:
         """Check whether annotation contains bool directly or via union/optional."""
         return any(
             CliCommandBuilder._is_bool(candidate)
@@ -181,7 +183,7 @@ class CliCommandBuilder:
         )
 
     @staticmethod
-    def _extract_list_item_type(annotation: Any) -> Any | None:
+    def _extract_list_item_type(annotation: object) -> object | None:
         """Extract list item type from annotation, including optional/union wrappers."""
         for candidate in CliCommandBuilder._unwrap_union_annotations(annotation):
             if candidate in {None, type(None)}:
@@ -195,20 +197,18 @@ class CliCommandBuilder:
         return None
 
     @staticmethod
-    def _is_optional_str(annotation: Any) -> bool:
+    def _is_optional_str(annotation: object) -> bool:
         """Check whether annotation is exactly str | None."""
         members = CliCommandBuilder._unwrap_union_annotations(annotation)
-        return str in members and type(None) in members and len(members) == 2
+        return str in members and type(None) in members and len(members) == OPTIONAL_UNION_MEMBER_COUNT
 
     @staticmethod
-    def _annotation_to_string(annotation: Any) -> str:
+    def _annotation_to_string(annotation: object) -> str:
         """Convert Python type annotations to readable strings."""
         result: str = ""
 
         if annotation == inspect.Parameter.empty:
             result = "str"
-        elif annotation is Any:
-            result = "Any"
         elif annotation is None or annotation is type(None):
             result = "None"
         else:
@@ -232,7 +232,7 @@ class CliCommandBuilder:
         return result
 
     @staticmethod
-    def _build_list_description(param_name: str, list_item_type: Any) -> str:
+    def _build_list_description(param_name: str, list_item_type: object) -> str:
         """Build type-specific description for list prompt inputs."""
         if list_item_type is str:
             return f"Enter comma-separated text values for {param_name} (e.g. alpha, beta, gamma)"
@@ -247,7 +247,7 @@ class CliCommandBuilder:
         item_type_name = CliCommandBuilder._annotation_to_string(list_item_type)
         return f"Enter comma-separated values for {param_name} ({item_type_name})"
 
-    def _build_input_metadata(self, param: inspect.Parameter) -> tuple[str, dict[str, Any], str, Any]:
+    def _build_input_metadata(self, param: inspect.Parameter) -> tuple[str, dict[str, object], str, object]:
         """
         Build VS Code input metadata for a single parameter.
 
@@ -255,9 +255,9 @@ class CliCommandBuilder:
         """
         annotation = param.annotation
         input_type: str = "promptString"
-        input_options: dict[str, Any] = {}
+        input_options: dict[str, object] = {}
         description: str = f"Enter value for {param.name} ({self._annotation_to_string(annotation)})"
-        default_value: Any = "" if param.default == inspect.Parameter.empty else param.default
+        default_value: object = "" if param.default == inspect.Parameter.empty else param.default
 
         list_item_type = self._extract_list_item_type(annotation)
         if list_item_type is not None:
@@ -296,7 +296,7 @@ class CliCommandBuilder:
 
         return input_type, input_options, description, default_value
 
-    def analyze_tool(self, tool: Callable[..., Any]) -> ToolCommandSpec:
+    def analyze_tool(self, tool: Callable[..., object]) -> ToolCommandSpec:
         """
         Analyze tool and return complete specification for building command and inputs.
 

@@ -7,7 +7,7 @@ import enum
 import shlex
 import typer
 import inspect
-import subprocess
+import subprocess  # noqa: S404
 from collections.abc import Callable
 from functools import wraps
 from toolit.constants import (
@@ -16,7 +16,9 @@ from toolit.constants import (
     ToolitTypesEnum,
 )
 from toolit.type_utils import unwrap_union_members
-from typing import TYPE_CHECKING, Any, get_args, get_origin
+from typing import TYPE_CHECKING, get_args, get_origin
+
+OPTIONAL_UNION_MEMBER_COUNT = 2
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
@@ -29,7 +31,7 @@ else:
 
         _has_mcp = True
     except ImportError:
-        FastMCP: Any = None  # type: ignore[no-redef]
+        FastMCP: object = None  # type: ignore[no-redef]
         _has_mcp = False
 
 # Initialize the Typer app
@@ -44,7 +46,7 @@ def initialize() -> None:
 
 
 def register_command(
-    command_func: Callable[..., Any],
+    command_func: Callable[..., object],
     name: str | None = None,
     rich_help_panel: str | None = None,
 ) -> None:
@@ -63,7 +65,7 @@ def register_command(
         mcp.tool(name)(command_func)
 
 
-def _extract_list_item_type(annotation: Any) -> Any | None:
+def _extract_list_item_type(annotation: object) -> object | None:
     """Return the T for list[T] (including Optional[list[T]]), or None if not a list."""
     for candidate in unwrap_union_members(annotation):
         if candidate is type(None):
@@ -74,29 +76,29 @@ def _extract_list_item_type(annotation: Any) -> Any | None:
     return None
 
 
-def _is_optional_list(annotation: Any) -> bool:
+def _is_optional_list(annotation: object) -> bool:
     """Return True when annotation allows None alongside a list type."""
     members = unwrap_union_members(annotation)
     return type(None) in members and any(get_origin(m) is list for m in members)
 
 
-def _is_optional_str(annotation: Any) -> bool:
+def _is_optional_str(annotation: object) -> bool:
     """Return True when annotation is exactly str | None."""
     members = unwrap_union_members(annotation)
-    return str in members and type(None) in members and len(members) == 2
+    return str in members and type(None) in members and len(members) == OPTIONAL_UNION_MEMBER_COUNT
 
 
-def _is_required_str(annotation: Any, default: Any) -> bool:
+def _is_required_str(annotation: object, default: object) -> bool:
     """Return True when annotation is plain str with no default value."""
     return annotation is str and default is inspect.Parameter.empty
 
 
-def _contains_bool(annotation: Any) -> bool:
+def _contains_bool(annotation: object) -> bool:
     """Return True when annotation is or contains bool."""
     return any(m is bool for m in unwrap_union_members(annotation))
 
 
-def _coerce_list_value(value: list[Any], item_type: Any) -> list[Any]:
+def _coerce_list_value(value: list[object], item_type: object) -> list[object] | None:
     """
     Split a single comma-separated element if needed, then convert to item_type.
 
@@ -118,7 +120,7 @@ def _coerce_list_value(value: list[Any], item_type: Any) -> list[Any]:
     return raw_items
 
 
-def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
+def _create_type_coercion_wrapper(func: Callable[..., object]) -> Callable[..., object]:  # noqa: C901
     """
     Wrap a function to add CLI type coercions applied before the function is called.
 
@@ -130,7 +132,7 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
     """
     sig = inspect.signature(func)
     new_params: list[inspect.Parameter] = []
-    coercions: dict[str, tuple[str, Any]] = {}
+    coercions: dict[str, tuple[str, object | None]] = {}
 
     for param in sig.parameters.values():
         ann = param.annotation
@@ -139,7 +141,7 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
         if list_item_type is not None:
             coercions[param.name] = ("list", list_item_type)
             # Expose list[str] (or list[str] | None) to Typer so it skips type conversion.
-            new_ann: Any = (list[str] | None) if _is_optional_list(ann) else list[str]
+            new_ann: object = (list[str] | None) if _is_optional_list(ann) else list[str]
             new_params.append(param.replace(annotation=new_ann))
             continue
 
@@ -167,7 +169,7 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
     new_sig = sig.replace(parameters=new_params)
 
     @wraps(func)
-    def _wrapper(*args: Any, **kwargs: Any) -> Any:
+    def _wrapper(*args: object, **kwargs: object) -> object:
         for param_name, (coercion_type, extra) in coercions.items():
             if param_name not in kwargs:
                 continue
@@ -178,23 +180,21 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
             elif coercion_type == "bool":
                 kwargs[param_name] = str(value).lower() == "true"
             elif coercion_type == "optional_str":
-                if isinstance(value, str):
-                    if value.startswith(OPTIONAL_STR_SENTINEL):
-                        raw_value = value[len(OPTIONAL_STR_SENTINEL) :]
-                        kwargs[param_name] = None if raw_value == "" else raw_value
-                    elif not value:
-                        kwargs[param_name] = None
-            elif coercion_type == "required_str":
-                if not value:
-                    typer.secho(f"Error: '{param_name}' cannot be empty.", fg=typer.colors.RED)
-                    raise typer.Exit(code=1)
+                if isinstance(value, str) and value.startswith(OPTIONAL_STR_SENTINEL):
+                    raw_value = value[len(OPTIONAL_STR_SENTINEL) :]
+                    kwargs[param_name] = raw_value or None
+                elif isinstance(value, str) and not value:
+                    kwargs[param_name] = None
+            elif coercion_type == "required_str" and isinstance(value, str) and not value:
+                typer.secho(f"Error: '{param_name}' cannot be empty.", fg=typer.colors.RED)
+                raise typer.Exit(code=1)
 
         return func(*args, **kwargs)
 
     _wrapper.__signature__ = new_sig
     # Rebuild __annotations__ to match the new signature so Typer/get_type_hints
     # sees the transformed types rather than the originals copied by @wraps.
-    new_annotations: dict[str, Any] = {
+    new_annotations: dict[str, object] = {
         p.name: p.annotation for p in new_sig.parameters.values() if p.annotation is not inspect.Parameter.empty
     }
     if sig.return_annotation is not inspect.Parameter.empty:
@@ -203,11 +203,11 @@ def _create_type_coercion_wrapper(func: Callable[..., Any]) -> Callable[..., Any
     return _wrapper
 
 
-def _create_clitool_runtime_wrapper(command_func: Callable[..., Any]) -> Callable[..., None]:
+def _create_clitool_runtime_wrapper(command_func: Callable[..., object]) -> Callable[..., None]:
     """Wrap a clitool function so its returned command string runs in a shell."""
 
     @wraps(command_func)
-    def _wrapped(*args: Any, **kwargs: Any) -> None:
+    def _wrapped(*args: object, **kwargs: object) -> None:
         command = command_func(*args, **kwargs)
         if not isinstance(command, str):
             typer.secho(
@@ -226,7 +226,7 @@ def _create_clitool_runtime_wrapper(command_func: Callable[..., Any]) -> Callabl
 
         if os.name == "nt":
             # Use PowerShell on Windows so command quoting matches interactive pwsh usage.
-            result = subprocess.run(["pwsh", "-NoProfile", "-Command", command_to_run], check=False)
+            result = subprocess.run(["pwsh", "-NoProfile", "-Command", command_to_run], check=False)  # noqa: S603, S607
         else:
             # For non-Windows: try to split the command safely to avoid shell injection.
             # If the command contains shell metacharacters (pipes, redirects, etc.),
@@ -239,7 +239,7 @@ def _create_clitool_runtime_wrapper(command_func: Callable[..., Any]) -> Callabl
                 # Simple command - safe to split and execute without shell
                 try:
                     cmd_args = shlex.split(command_to_run)
-                    result = subprocess.run(cmd_args, check=False)
+                    result = subprocess.run(cmd_args, check=False)  # noqa: S603
                 except ValueError:
                     # If shlex.split fails, fall back to shell=True
                     result = subprocess.run(command_to_run, shell=True, check=False)  # noqa: S602

@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 *NOTE:* Version 0.X.X might have breaking changes in bumps of the minor version number. This is because the project is still in early development and the API is not yet stable. It will still be marked clearly in the release notes.
 
+## [0.8.0] - 29-06-2026
+- Fix bug with bool without default value being treated as a required parameter in the CLI. This would make it not match the CLI builder and cause an error in execution.
+- Fix bug with CLI builder using the wrong type of quotes, and not parsing correctly in some cases. Now uses single quotes instead of double quotes.
+
 ## [0.7.0] - 03-05-2026
 - Added support for the Optional and Union type hints in the CLI arguments. This allows for more flexible command definitions and better type checking.
 - Improved support for list parameters in the CLI, and handled the vscode tasks generation for list parameters appropriately.

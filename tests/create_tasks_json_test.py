@@ -41,7 +41,7 @@ def test_task_json_builder_creates_task_entry_from_spec() -> None:
 
     assert task["label"] == "Run Script"
     assert task["type"] == "shell"
-    assert task["command"].endswith('toolit run-script "${input:run_script_name}"')
+    assert task["command"].endswith("toolit run-script '${input:run_script_name}'")
     assert task["detail"] == "Run a shell script."
     assert task["problemMatcher"] == []
 
@@ -50,7 +50,7 @@ def test_task_json_builder_omits_detail_when_no_docstring() -> None:
     """Ensure detail field is omitted when tool has no docstring."""
 
     @clitool
-    def run_without_docstring(name: str) -> str:  # type: ignore[no-untyped-def]
+    def run_without_docstring(name: str) -> str:  # type: ignore[no-untyped-def,empty-body]
         pass
 
     cmd_builder = CliCommandBuilder()
@@ -69,7 +69,7 @@ def test_task_json_builder_collects_input_entries() -> None:
     """Ensure all input entries are collected during processing."""
 
     @clitool
-    def multi_param(name: str, count: int = 5) -> None:  # noqa: ARG001
+    def multi_param(name: str, count: int = 5) -> None:
         """Tool with multiple parameters."""
 
     cmd_builder = CliCommandBuilder()
@@ -88,7 +88,7 @@ def test_task_json_builder_create_tasks_json_returns_proper_structure() -> None:
     """Ensure create_tasks_json returns properly formatted output."""
 
     @clitool
-    def simple_tool(text: str) -> None:  # noqa: ARG001
+    def simple_tool(text: str) -> None:
         """A simple tool."""
 
     cmd_builder = CliCommandBuilder()

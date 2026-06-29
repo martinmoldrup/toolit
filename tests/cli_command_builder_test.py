@@ -1,14 +1,12 @@
 """Tests for CLI command builder with full parameter analysis and metadata generation."""
 
 import enum
-import inspect
-from types import FunctionType
-from typing import Any, Optional, cast
-
 import pytest
-
+import inspect
 from toolit.cli_command_builder import CliCommandBuilder
 from toolit.constants import OPTIONAL_STR_SENTINEL
+from types import FunctionType
+from typing import Any, Optional, cast
 
 
 def _as_function(func: Any) -> FunctionType:
@@ -139,10 +137,7 @@ def test_create_args_for_tool_handles_pep604_optional() -> None:
     inputs = spec.get_input_entries()
 
     assert args == [
-        '--input-dataset-name "'
-        f'{OPTIONAL_STR_SENTINEL}'
-        '${input:_tool_with_pep604_optional_input_dataset_name}'
-        '"'
+        f"--input-dataset-name '{OPTIONAL_STR_SENTINEL}${{input:_tool_with_pep604_optional_input_dataset_name}}'",
     ]
     assert inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
     assert inputs[0]["default"] is None
@@ -157,10 +152,7 @@ def test_create_args_for_tool_handles_typing_optional() -> None:
     inputs = spec.get_input_entries()
 
     assert args == [
-        '--input-dataset-name "'
-        f'{OPTIONAL_STR_SENTINEL}'
-        '${input:_tool_with_typing_optional_input_dataset_name}'
-        '"'
+        f"--input-dataset-name '{OPTIONAL_STR_SENTINEL}${{input:_tool_with_typing_optional_input_dataset_name}}'",
     ]
     assert inputs[0]["description"] == "Enter value for input_dataset_name (str | None)"
     assert inputs[0]["default"] is None
@@ -174,7 +166,7 @@ def test_create_args_for_tool_raises_on_missing_type_hint() -> None:
     cmd_builder = CliCommandBuilder()
 
     with pytest.raises(
-        ValueError, match="Parameter 'to_print' in function '_tool_without_type_hint' is missing a type annotation"
+        ValueError, match="Parameter 'to_print' in function '_tool_without_type_hint' is missing a type annotation",
     ):
         cmd_builder.analyze_tool(_as_function(_tool_without_type_hint))
 
@@ -206,7 +198,7 @@ def test_create_args_for_tool_enum_creates_picklist_input() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['"${input:_tool_with_enum_param_color}"']
+    assert args == ["'${input:_tool_with_enum_param_color}'"]
     assert inputs[0]["type"] == "pickString"
     assert inputs[0]["options"] == ["red", "green", "blue"]
 
@@ -229,7 +221,7 @@ def test_create_args_for_tool_enum_respects_provided_default() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['--color "${input:_tool_with_enum_param_with_default_color}"']
+    assert args == ["--color '${input:_tool_with_enum_param_with_default_color}'"]
     assert inputs[0]["default"] == Color.RED.value
 
 
@@ -242,8 +234,8 @@ def test_create_args_for_tool_multiple_enum_params() -> None:
     inputs = spec.get_input_entries()
 
     assert args == [
-        '--color "${input:_tool_with_multiple_enum_params_color}"',
-        '--environment "${input:_tool_with_multiple_enum_params_environment}"',
+        "--color '${input:_tool_with_multiple_enum_params_color}'",
+        "--environment '${input:_tool_with_multiple_enum_params_environment}'",
     ]
     assert len(inputs) == 2
     # First input (color)
@@ -267,7 +259,7 @@ def test_create_args_for_tool_list_str_uses_promptstring_and_guidance() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['"${input:_tool_with_list_str_param_items}"']
+    assert args == ["'${input:_tool_with_list_str_param_items}'"]
     assert inputs[0]["type"] == "promptString"
     assert inputs[0]["description"] == "Enter comma-separated text values for items (e.g. alpha, beta, gamma)"
     assert inputs[0]["default"] == ""
@@ -281,7 +273,7 @@ def test_create_args_for_tool_list_int_serializes_default_values() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['--numbers "${input:_tool_with_list_int_param_numbers}"']
+    assert args == ["--numbers '${input:_tool_with_list_int_param_numbers}'"]
     assert inputs[0]["description"] == "Enter comma-separated integer values for numbers (e.g. 1, 2, 3)"
     assert inputs[0]["default"] == "1, 2, 3"
 
@@ -294,7 +286,7 @@ def test_create_args_for_tool_list_enum_serializes_default_values() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['--colors "${input:_tool_with_list_enum_param_colors}"']
+    assert args == ["--colors '${input:_tool_with_list_enum_param_colors}'"]
     assert (
         inputs[0]["description"]
         == "Enter comma-separated enum values for colors. Accepted values: [red, green, blue]. You can also use enum member names."
@@ -310,7 +302,7 @@ def test_create_args_for_tool_optional_list_keeps_none_default() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['--values "${input:_tool_with_optional_list_param_values}"']
+    assert args == ["--values '${input:_tool_with_optional_list_param_values}'"]
     assert inputs[0]["default"] is None
 
 
@@ -325,7 +317,7 @@ def test_create_args_for_tool_bool_creates_picklist_input() -> None:
     args = spec.get_argument_strings()
     inputs = spec.get_input_entries()
 
-    assert args == ['--is-enabled "${input:_tool_with_bool_param_is_enabled}"']
+    assert args == ["--is-enabled '${input:_tool_with_bool_param_is_enabled}'"]
     assert inputs[0]["type"] == "pickString"
     assert inputs[0]["options"] == ["True", "False"]
     assert inputs[0]["default"] == "False"

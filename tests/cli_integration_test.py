@@ -173,6 +173,18 @@ class TestBooleanParameterExecution:
         inputs = spec.get_input_entries()
         assert inputs[0]["default"] == "True"
 
+    def test_bool_without_default(self) -> None:
+        """Ensure bool parameters with True default preserve it."""
+
+        def with_bool_no_defaults(enabled: bool) -> None:  # noqa: ARG001
+            """Boolean parameter with True default."""
+        
+        cmd_builder = CliCommandBuilder()
+        spec = cmd_builder.analyze_tool(with_bool_no_defaults)
+
+        inputs = spec.get_input_entries()
+        assert inputs[0]["default"] == "False"
+
     def test_bool_command_with_true_string(self) -> None:
         """Ensure 'True' string is correctly converted to bool True."""
         cmd = CliCommandBuilder().create_typer_option_name("enabled")

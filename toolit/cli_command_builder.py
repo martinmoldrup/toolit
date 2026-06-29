@@ -46,9 +46,9 @@ class ParameterSpec:
     def get_argument_string(self) -> str:
         """Get this parameter's argument string for command building."""
         if self.is_optional_string:
-            input_ref = f'"{OPTIONAL_STR_SENTINEL}${{input:{self.input_id}}}"'
+            input_ref = f"'{OPTIONAL_STR_SENTINEL}${{input:{self.input_id}}}'"
         else:
-            input_ref = f'"${{input:{self.input_id}}}"'
+            input_ref = f"'${{input:{self.input_id}}}'"
         if self.uses_option:
             return f"{self.option_name} {input_ref}"
         return input_ref

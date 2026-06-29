@@ -13,7 +13,6 @@ If you want mcp server support, you can install the optional dependency:
 ```bash
 pip install toolit[mcp]
 ```
-Note: MCP support is not available on python 3.9, since it is not supported by the `mcp` package.
 
 ## Usage
 Add a folder called `devtools` to your project root. Create python modules, you decide the name, in this folder. Add the tool decorator to functions you want to expose as commands.

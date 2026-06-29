@@ -213,6 +213,22 @@ def test_cli_bool_option_false_string_is_received_as_false() -> None:
     assert captured["is_enabled"] is False
 
 
+def test_cli_bool_option_no_default_string_is_received_as_false() -> None:
+    """Ensure passing false, in a function with no default, for a bool option results in Python False."""
+    captured: dict[str, bool] = {}
+
+    def bool_tool(is_enabled: bool) -> None:
+        captured["is_enabled"] = is_enabled
+
+    create_apps_and_register.register_command(bool_tool, name="test-bool-no-default")
+    runner = CliRunner()
+    result = runner.invoke(create_apps_and_register.app, ["test-bool-no-default", "False"])
+
+    assert result.exit_code == 0, f"CLI failed: {result.output}"
+    assert captured["is_enabled"] is False
+
+
+
 def test_cli_list_str_comma_separated_single_arg_is_split() -> None:
     """Ensure a single comma-separated string is split into a list[str]."""
     captured: dict[str, list[str]] = {}
